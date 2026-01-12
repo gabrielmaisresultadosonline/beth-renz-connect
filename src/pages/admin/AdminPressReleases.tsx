@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Pin, Calendar, CalendarOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { RichEditor } from '@/components/admin/RichEditor';
 import { ImageUpload } from '@/components/admin/ImageUpload';
@@ -22,6 +22,9 @@ interface PressRelease {
   published: boolean | null;
   published_at: string | null;
   created_at: string;
+  display_order: number | null;
+  pinned: boolean | null;
+  show_date: boolean | null;
 }
 
 export default function AdminPressReleases() {
@@ -35,6 +38,9 @@ export default function AdminPressReleases() {
     content: '',
     image_url: '',
     published: false,
+    published_at: '',
+    show_date: true,
+    pinned: false,
   });
   const { toast } = useToast();
 
@@ -42,7 +48,9 @@ export default function AdminPressReleases() {
     const { data, error } = await supabase
       .from('press_releases')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('pinned', { ascending: false })
+      .order('display_order', { ascending: true })
+      .order('published_at', { ascending: false });
     
     if (data) setItems(data);
     setLoading(false);
@@ -55,20 +63,30 @@ export default function AdminPressReleases() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Parse the date or use current date if publishing without a date set
+    let publishedAt = formData.published_at || null;
+    if (formData.published && !publishedAt) {
+      publishedAt = new Date().toISOString();
+    }
+    
     const payload = {
       title: formData.title,
       summary: formData.summary || null,
       content: formData.content,
       image_url: formData.image_url || null,
       published: formData.published,
-      published_at: formData.published ? new Date().toISOString() : null,
+      published_at: publishedAt,
+      show_date: formData.show_date,
+      pinned: formData.pinned,
     };
 
     let error;
     if (editingItem) {
       ({ error } = await supabase.from('press_releases').update(payload).eq('id', editingItem.id));
     } else {
-      ({ error } = await supabase.from('press_releases').insert(payload));
+      // Get max display_order for new items
+      const maxOrder = items.length > 0 ? Math.max(...items.map(i => i.display_order || 0)) + 1 : 0;
+      ({ error } = await supabase.from('press_releases').insert({ ...payload, display_order: maxOrder }));
     }
 
     if (error) {
@@ -99,15 +117,65 @@ export default function AdminPressReleases() {
       .from('press_releases')
       .update({ 
         published: newPublished,
-        published_at: newPublished ? new Date().toISOString() : null
+        published_at: newPublished && !item.published_at ? new Date().toISOString() : item.published_at
       })
       .eq('id', item.id);
     
     if (!error) fetchItems();
   };
 
+  const togglePin = async (item: PressRelease) => {
+    const newPinned = !item.pinned;
+    const { error } = await supabase
+      .from('press_releases')
+      .update({ pinned: newPinned })
+      .eq('id', item.id);
+    
+    if (!error) {
+      toast({ title: newPinned ? 'Fixado no topo!' : 'Removido do topo' });
+      fetchItems();
+    }
+  };
+
+  const toggleShowDate = async (item: PressRelease) => {
+    const newShowDate = !item.show_date;
+    const { error } = await supabase
+      .from('press_releases')
+      .update({ show_date: newShowDate })
+      .eq('id', item.id);
+    
+    if (!error) fetchItems();
+  };
+
+  const moveItem = async (item: PressRelease, direction: 'up' | 'down') => {
+    const currentIndex = items.findIndex(i => i.id === item.id);
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+    
+    const targetItem = items[targetIndex];
+    
+    // Swap display_order values
+    const updates = [
+      supabase.from('press_releases').update({ display_order: targetItem.display_order }).eq('id', item.id),
+      supabase.from('press_releases').update({ display_order: item.display_order }).eq('id', targetItem.id),
+    ];
+    
+    await Promise.all(updates);
+    fetchItems();
+  };
+
   const resetForm = () => {
-    setFormData({ title: '', summary: '', content: '', image_url: '', published: false });
+    setFormData({ 
+      title: '', 
+      summary: '', 
+      content: '', 
+      image_url: '', 
+      published: false,
+      published_at: '',
+      show_date: true,
+      pinned: false,
+    });
     setEditingItem(null);
   };
 
@@ -119,6 +187,9 @@ export default function AdminPressReleases() {
       content: item.content,
       image_url: item.image_url || '',
       published: item.published || false,
+      published_at: item.published_at ? item.published_at.slice(0, 16) : '',
+      show_date: item.show_date ?? true,
+      pinned: item.pinned || false,
     });
     setDialogOpen(true);
   };
@@ -173,15 +244,52 @@ export default function AdminPressReleases() {
                     folder="press-releases"
                   />
                   
-                  <div className="flex items-center gap-3 p-4 bg-secondary/30 rounded-lg">
-                    <Switch 
-                      checked={formData.published} 
-                      onCheckedChange={(checked) => setFormData({ ...formData, published: checked })} 
-                    />
-                    <div>
-                      <Label className="cursor-pointer">Publicar</Label>
-                      <p className="text-xs text-muted-foreground">Visível no site</p>
+                  <div className="space-y-3 p-4 bg-secondary/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Switch 
+                        checked={formData.published} 
+                        onCheckedChange={(checked) => setFormData({ ...formData, published: checked })} 
+                      />
+                      <div>
+                        <Label className="cursor-pointer">Publicar</Label>
+                        <p className="text-xs text-muted-foreground">Visível no site</p>
+                      </div>
                     </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <Switch 
+                        checked={formData.pinned} 
+                        onCheckedChange={(checked) => setFormData({ ...formData, pinned: checked })} 
+                      />
+                      <div>
+                        <Label className="cursor-pointer">Fixar no Topo</Label>
+                        <p className="text-xs text-muted-foreground">Aparece primeiro</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <Switch 
+                        checked={formData.show_date} 
+                        onCheckedChange={(checked) => setFormData({ ...formData, show_date: checked })} 
+                      />
+                      <div>
+                        <Label className="cursor-pointer">Mostrar Data</Label>
+                        <p className="text-xs text-muted-foreground">Exibir data no site</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label>Data de Publicação</Label>
+                    <Input 
+                      type="datetime-local"
+                      value={formData.published_at}
+                      onChange={(e) => setFormData({ ...formData, published_at: e.target.value })}
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Defina uma data personalizada
+                    </p>
                   </div>
                 </div>
               </div>
@@ -209,27 +317,88 @@ export default function AdminPressReleases() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {items.map((item) => (
-            <Card key={item.id} className="hover:shadow-md transition-shadow">
+          {items.map((item, index) => (
+            <Card 
+              key={item.id} 
+              className={`hover:shadow-md transition-shadow ${item.pinned ? 'border-primary/50 bg-primary/5' : ''}`}
+            >
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  {/* Reorder buttons */}
+                  <div className="flex sm:flex-col gap-1">
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => moveItem(item, 'up')}
+                      disabled={index === 0}
+                      className="h-7 w-7"
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => moveItem(item, 'down')}
+                      disabled={index === items.length - 1}
+                      className="h-7 w-7"
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  
                   {item.image_url && (
                     <img src={item.image_url} alt="" className="w-full sm:w-32 h-24 object-cover rounded-lg" />
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h3 className="font-semibold truncate">{item.title}</h3>
+                      {item.pinned && (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-primary/20 text-primary flex items-center gap-1">
+                          <Pin className="h-3 w-3" /> Fixado
+                        </span>
+                      )}
                       <span className={`px-2 py-0.5 text-xs rounded-full ${item.published ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-secondary text-muted-foreground'}`}>
                         {item.published ? 'Publicado' : 'Rascunho'}
                       </span>
                     </div>
                     {item.summary && <p className="text-sm text-muted-foreground line-clamp-1">{item.summary}</p>}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Criado em {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')}
-                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-1">
+                      <span>Criado em {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')}</span>
+                      {item.published_at && (
+                        <span className="flex items-center gap-1">
+                          {item.show_date ? (
+                            <>• Publicado: {format(new Date(item.published_at), 'dd/MM/yyyy')}</>
+                          ) : (
+                            <span className="text-muted-foreground/60">• Data oculta</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <Button size="icon" variant="ghost" onClick={() => togglePublish(item)} title={item.published ? 'Despublicar' : 'Publicar'}>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => togglePin(item)} 
+                      title={item.pinned ? 'Remover do topo' : 'Fixar no topo'}
+                      className={item.pinned ? 'text-primary' : ''}
+                    >
+                      <Pin className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => toggleShowDate(item)} 
+                      title={item.show_date ? 'Ocultar data' : 'Mostrar data'}
+                    >
+                      {item.show_date ? <Calendar className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => togglePublish(item)} 
+                      title={item.published ? 'Despublicar' : 'Publicar'}
+                    >
                       {item.published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                     <Button size="icon" variant="ghost" onClick={() => openEdit(item)}>
