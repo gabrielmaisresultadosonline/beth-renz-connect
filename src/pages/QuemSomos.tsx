@@ -2,100 +2,214 @@ import { Layout } from '@/components/Layout';
 import { PageHero } from '@/components/PageHero';
 import { AnimatedSection } from '@/components/AnimatedSection';
 import { Card, CardContent } from '@/components/ui/card';
-import { Award, Target, Eye, Heart } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { Users } from 'lucide-react';
+
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string | null;
+  bio: string;
+  photo_url: string | null;
+  display_order: number;
+}
+
+interface Collaborator {
+  id: string;
+  name: string;
+  bio: string;
+  photo_url: string | null;
+  display_order: number;
+}
+
+interface SiteContent {
+  section: string;
+  title: string | null;
+  subtitle: string | null;
+  content: string | null;
+}
 
 export default function QuemSomos() {
+  const { data: intro } = useQuery({
+    queryKey: ['site-content', 'quem_somos_intro'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('site_content')
+        .select('*')
+        .eq('section', 'quem_somos_intro')
+        .single();
+      return data as SiteContent | null;
+    },
+  });
+
+  const { data: clientesContent } = useQuery({
+    queryKey: ['site-content', 'quem_somos_clientes'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('site_content')
+        .select('*')
+        .eq('section', 'quem_somos_clientes')
+        .single();
+      return data as SiteContent | null;
+    },
+  });
+
+  const { data: teamMembers } = useQuery({
+    queryKey: ['team-members'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('team_members')
+        .select('*')
+        .eq('active', true)
+        .order('display_order');
+      return data as TeamMember[];
+    },
+  });
+
+  const { data: collaborators } = useQuery({
+    queryKey: ['collaborators'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('collaborators')
+        .select('*')
+        .eq('active', true)
+        .order('display_order');
+      return data as Collaborator[];
+    },
+  });
+
   return (
     <Layout>
       <PageHero 
         title="Quem Somos" 
-        subtitle="Jornalismo a serviço da sua marca" 
+        subtitle="Comunicação estratégica desde 1993" 
       />
 
+      {/* Intro Section */}
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <AnimatedSection>
               <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                Liderada pela jornalista <strong className="text-foreground">Elizabeth Renz</strong> (registro profissional 8228/95), 
-                a <strong className="text-primary">Beth Renz Imprensa & Relacionamento</strong> atua com excelência em comunicação integrada 
-                há mais de duas décadas no mercado do Rio Grande do Sul.
+                {intro?.subtitle || 'A SENHA Comunicação Integrada atua desde 1993 com foco em estratégias de comunicação para posicionar o cliente junto aos seus públicos-alvo, sejam externos quanto internos.'}
               </p>
             </AnimatedSection>
             
             <AnimatedSection delay={0.1}>
-              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                Nossa missão é transformar os fatos gerados pela sua empresa em notícias de impacto, 
-                conquistando espaço espontâneo em rádio, televisão, jornais e portais de notícias. 
-                Toda empresa gera pauta: aquisições, aniversários, prêmios, eventos, lançamentos de produtos. 
-                Nossa expertise jornalística identifica essas oportunidades e as transforma em visibilidade real para sua marca.
-              </p>
-            </AnimatedSection>
-
-            <AnimatedSection delay={0.2}>
-              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                Trabalhamos com o conceito de <strong className="text-foreground">mídia espontânea</strong>, 
-                onde as publicações acontecem pelo mérito da notícia e não por espaço pago. 
-                Essa é a grande diferença entre a assessoria de imprensa e a publicidade tradicional, 
-                conferindo maior credibilidade à mensagem transmitida.
-              </p>
-            </AnimatedSection>
-
-            <AnimatedSection delay={0.3}>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Além da assessoria de imprensa, atuamos na gestão de crises, apoio ao marketing e 
-                estratégias de mídias digitais, oferecendo um serviço completo de comunicação corporativa.
+                {intro?.content || 'Acredita que a Comunicação faz parte de todos os processos de uma organização. Por isto, aprofunda o conhecimento sobre o negócio do cliente para ser capaz de introduzir a Comunicação no rol de estratégias que contribuirão para as metas corporativas.'}
               </p>
             </AnimatedSection>
           </div>
         </div>
       </section>
 
-      <section className="py-20 bg-secondary relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-primary rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl" />
-        </div>
-
-        <div className="container mx-auto px-4 relative z-10">
+      {/* Team Section */}
+      <section className="py-20 bg-secondary">
+        <div className="container mx-auto px-4">
           <AnimatedSection className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-              Nossos Valores
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+              Nossa Equipe
             </h2>
           </AnimatedSection>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { icon: Target, title: 'Missão', description: 'Transformar fatos empresariais em notícias relevantes que geram visibilidade e credibilidade.' },
-              { icon: Eye, title: 'Visão', description: 'Ser referência em assessoria de imprensa e comunicação corporativa no Rio Grande do Sul.' },
-              { icon: Award, title: 'Excelência', description: 'Compromisso com a qualidade e ética jornalística em cada projeto realizado.' },
-              { icon: Heart, title: 'Relacionamento', description: 'Construção de parcerias duradouras baseadas em confiança e resultados concretos.' },
-            ].map((value, index) => (
-              <AnimatedSection key={value.title} delay={index * 0.1}>
-                <motion.div
-                  whileHover={{ y: -8, scale: 1.02 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card className="bg-card border-border hover:border-primary/30 transition-all duration-300 h-full shine">
-                    <CardContent className="p-6 text-center">
-                      <motion.div 
-                        className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4"
-                        whileHover={{ rotate: 360, scale: 1.1 }}
-                        transition={{ duration: 0.6 }}
-                      >
-                        <value.icon className="h-8 w-8 text-primary" />
-                      </motion.div>
-                      <h3 className="font-display font-semibold text-xl text-foreground mb-3">{value.title}</h3>
-                      <p className="text-sm text-muted-foreground">{value.description}</p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
+
+          <div className="max-w-5xl mx-auto space-y-16">
+            {teamMembers?.map((member, index) => (
+              <AnimatedSection key={member.id} delay={index * 0.1}>
+                <div className={`flex flex-col md:flex-row gap-8 items-start ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
+                  {/* Photo */}
+                  <motion.div 
+                    className="w-48 h-48 flex-shrink-0 mx-auto md:mx-0"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    {member.photo_url ? (
+                      <img 
+                        src={member.photo_url} 
+                        alt={member.name}
+                        className="w-full h-full object-cover rounded-2xl shadow-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-primary/10 rounded-2xl flex items-center justify-center">
+                        <Users className="w-16 h-16 text-primary/50" />
+                      </div>
+                    )}
+                  </motion.div>
+
+                  {/* Info */}
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-display font-bold text-primary mb-2">
+                      {member.name}
+                    </h3>
+                    {member.role && (
+                      <p className="text-sm text-muted-foreground uppercase tracking-wider mb-4">
+                        {member.role}
+                      </p>
+                    )}
+                    <div className="text-muted-foreground space-y-3 whitespace-pre-line">
+                      {member.bio.split('\n\n').map((paragraph, i) => (
+                        <p key={i}>{paragraph}</p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </AnimatedSection>
             ))}
           </div>
         </div>
       </section>
+
+      {/* Clients Section */}
+      {clientesContent && (
+        <section className="py-20 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <AnimatedSection>
+                <h2 className="text-2xl font-display font-bold text-foreground mb-6">
+                  {clientesContent.title}
+                </h2>
+                <p className="text-muted-foreground leading-relaxed">
+                  {clientesContent.content}
+                </p>
+              </AnimatedSection>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Collaborators Section */}
+      {collaborators && collaborators.length > 0 && (
+        <section className="py-20 bg-secondary">
+          <div className="container mx-auto px-4">
+            <AnimatedSection className="text-center mb-12">
+              <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-4">
+                Nossos Parceiros de Produção Audiovisual
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Também atuamos com parceiros para a produção audiovisual, que já fazem parte da nossa história:
+              </p>
+            </AnimatedSection>
+
+            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+              {collaborators.map((collab, index) => (
+                <AnimatedSection key={collab.id} delay={index * 0.1}>
+                  <Card className="bg-card border-border h-full">
+                    <CardContent className="p-6">
+                      <h3 className="text-xl font-display font-bold text-primary mb-3">
+                        {collab.name}
+                      </h3>
+                      <p className="text-muted-foreground text-sm">
+                        {collab.bio}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </AnimatedSection>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </Layout>
   );
 }

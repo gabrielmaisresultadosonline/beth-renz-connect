@@ -74,6 +74,36 @@ export type Database = {
         }
         Relationships: []
       }
+      collaborators: {
+        Row: {
+          active: boolean | null
+          bio: string
+          created_at: string
+          display_order: number | null
+          id: string
+          name: string
+          photo_url: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          bio: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          name: string
+          photo_url?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          bio?: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          name?: string
+          photo_url?: string | null
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -223,6 +253,42 @@ export type Database = {
           section?: string
           subtitle?: string | null
           title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          active: boolean | null
+          bio: string
+          created_at: string
+          display_order: number | null
+          id: string
+          name: string
+          photo_url: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          bio: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          name: string
+          photo_url?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          bio?: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          name?: string
+          photo_url?: string | null
+          role?: string | null
           updated_at?: string
         }
         Relationships: []
