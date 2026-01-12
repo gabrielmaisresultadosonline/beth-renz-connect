@@ -9,6 +9,7 @@ import QuemSomos from "./pages/QuemSomos";
 import Solucoes from "./pages/Solucoes";
 import Clientes from "./pages/Clientes";
 import PressReleases from "./pages/PressReleases";
+import Blog from "./pages/Blog";
 import Clipping from "./pages/Clipping";
 import Dicas from "./pages/Dicas";
 import Parceiros from "./pages/Parceiros";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/solucoes" element={<Solucoes />} />
             <Route path="/clientes" element={<Clientes />} />
             <Route path="/press-releases" element={<PressReleases />} />
+            <Route path="/blog" element={<Blog />} />
             <Route path="/clipping" element={<Clipping />} />
             <Route path="/dicas" element={<Dicas />} />
             <Route path="/parceiros" element={<Parceiros />} />
