@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 
 interface Client {
   id: string;
@@ -91,23 +92,41 @@ export default function AdminClientes() {
 
   return (
     <AdminLayout title="Clientes">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <p className="text-muted-foreground">Gerencie os logos dos clientes</p>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />Novo</Button>
+            <Button><Plus className="h-4 w-4 mr-2" />Novo Cliente</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>{editingItem ? 'Editar' : 'Novo'} Cliente</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div><Label>Nome *</Label><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required /></div>
-              <div><Label>URL do Logo</Label><Input value={formData.logo_url} onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })} placeholder="https://..." /></div>
-              <div><Label>Website</Label><Input value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} placeholder="https://..." /></div>
-              <div className="flex items-center gap-2">
-                <Switch checked={formData.active} onCheckedChange={(checked) => setFormData({ ...formData, active: checked })} />
-                <Label>Ativo</Label>
+              <div>
+                <Label>Nome *</Label>
+                <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required placeholder="Nome do cliente" />
               </div>
-              <div className="flex gap-2 justify-end">
+              
+              <ImageUpload
+                value={formData.logo_url}
+                onChange={(value) => setFormData({ ...formData, logo_url: value })}
+                label="Logo do Cliente"
+                folder="clientes"
+              />
+              
+              <div>
+                <Label>Website (opcional)</Label>
+                <Input value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} placeholder="https://..." />
+              </div>
+              
+              <div className="flex items-center gap-3 p-4 bg-secondary/30 rounded-lg">
+                <Switch checked={formData.active} onCheckedChange={(checked) => setFormData({ ...formData, active: checked })} />
+                <div>
+                  <Label className="cursor-pointer">Ativo</Label>
+                  <p className="text-xs text-muted-foreground">Exibir no site</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-2 justify-end pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
                 <Button type="submit">Salvar</Button>
               </div>
@@ -121,15 +140,15 @@ export default function AdminClientes() {
       ) : items.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum cliente cadastrado</CardContent></Card>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {items.map((item) => (
-            <Card key={item.id} className={`relative group ${!item.active ? 'opacity-50' : ''}`}>
+            <Card key={item.id} className={`relative group transition-all ${!item.active ? 'opacity-50' : ''}`}>
               <CardContent className="p-4 text-center">
-                <div className="aspect-[3/2] bg-secondary rounded mb-2 flex items-center justify-center overflow-hidden">
+                <div className="aspect-square bg-secondary rounded-lg mb-2 flex items-center justify-center overflow-hidden">
                   {item.logo_url ? (
-                    <img src={item.logo_url} alt={item.name} className="max-w-full max-h-full object-contain" />
+                    <img src={item.logo_url} alt={item.name} className="max-w-full max-h-full object-contain p-2" />
                   ) : (
-                    <span className="text-xs text-muted-foreground">{item.name}</span>
+                    <span className="text-xs text-muted-foreground px-2">{item.name}</span>
                   )}
                 </div>
                 <p className="text-sm font-medium truncate">{item.name}</p>

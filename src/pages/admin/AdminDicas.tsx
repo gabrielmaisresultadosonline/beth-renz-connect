@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -11,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
+import { RichEditor } from '@/components/admin/RichEditor';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 
 interface Tip {
   id: string;
@@ -97,25 +98,62 @@ export default function AdminDicas() {
 
   return (
     <AdminLayout title="Dicas de Comunicação">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <p className="text-muted-foreground">Gerencie as dicas e artigos</p>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />Nova</Button>
+            <Button><Plus className="h-4 w-4 mr-2" />Nova Dica</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>{editingItem ? 'Editar' : 'Nova'} Dica</DialogTitle></DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div><Label>Título *</Label><Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required /></div>
-              <div><Label>Conteúdo *</Label><Textarea value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} rows={8} required /></div>
-              <div><Label>URL da Imagem</Label><Input value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} placeholder="https://..." /></div>
-              <div className="flex items-center gap-2">
-                <Switch checked={formData.published} onCheckedChange={(checked) => setFormData({ ...formData, published: checked })} />
-                <Label>Publicada</Label>
+          <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingItem ? 'Editar' : 'Nova'} Dica</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-4">
+                  <div>
+                    <Label>Título *</Label>
+                    <Input 
+                      value={formData.title} 
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
+                      required 
+                      placeholder="Título da dica"
+                    />
+                  </div>
+                  <div>
+                    <Label>Conteúdo *</Label>
+                    <RichEditor 
+                      value={formData.content} 
+                      onChange={(value) => setFormData({ ...formData, content: value })}
+                      placeholder="Escreva o conteúdo da dica. Use os botões para inserir imagens e vídeos..."
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <ImageUpload
+                    value={formData.image_url}
+                    onChange={(value) => setFormData({ ...formData, image_url: value })}
+                    label="Imagem de Capa"
+                    folder="dicas"
+                  />
+                  
+                  <div className="flex items-center gap-3 p-4 bg-secondary/30 rounded-lg">
+                    <Switch 
+                      checked={formData.published} 
+                      onCheckedChange={(checked) => setFormData({ ...formData, published: checked })} 
+                    />
+                    <div>
+                      <Label className="cursor-pointer">Publicar</Label>
+                      <p className="text-xs text-muted-foreground">Visível no site</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex gap-2 justify-end">
+              
+              <div className="flex gap-2 justify-end pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                <Button type="submit">Salvar</Button>
+                <Button type="submit">{editingItem ? 'Salvar' : 'Criar Dica'}</Button>
               </div>
             </form>
           </DialogContent>
@@ -131,17 +169,17 @@ export default function AdminDicas() {
           {items.map((item) => (
             <Card key={item.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row md:items-center gap-4">
-                  {item.image_url && <img src={item.image_url} alt="" className="w-full md:w-24 h-20 object-cover rounded" />}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  {item.image_url && <img src={item.image_url} alt="" className="w-full sm:w-32 h-24 object-cover rounded-lg" />}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h3 className="font-semibold truncate">{item.title}</h3>
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${item.published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${item.published ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-secondary text-muted-foreground'}`}>
                         {item.published ? 'Publicada' : 'Rascunho'}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-1">{item.content}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{format(new Date(item.created_at), 'dd/MM/yyyy')}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{item.content.replace(/!\[.*?\]\(.*?\)/g, '').replace(/\[video\]\(.*?\)/g, '').slice(0, 150)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')}</p>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <Button size="icon" variant="ghost" onClick={() => togglePublish(item)}>
