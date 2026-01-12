@@ -41,26 +41,33 @@ interface Service {
   id: string;
   title: string;
   description: string;
-  icon: string;
-  features: string[];
+  icon: string | null;
+  features: string[] | null;
   how_we_do: string | null;
-  display_order: number;
+  display_order: number | null;
 }
 
 export default function Solucoes() {
-  const { data: services, isLoading } = useQuery({
+  const {
+    data: services,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['services'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('services')
         .select('*')
         .eq('active', true)
         .order('display_order');
-      return data as Service[];
+
+      if (error) throw error;
+      return (data ?? []) as Service[];
     },
   });
 
-  const getIcon = (iconName: string): LucideIcon => {
+  const getIcon = (iconName: string | null | undefined): LucideIcon => {
+    if (!iconName) return Briefcase;
     return iconMap[iconName] || Briefcase;
   };
 
@@ -77,20 +84,28 @@ export default function Solucoes() {
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Não foi possível carregar os serviços agora.</p>
+            </div>
+          ) : !services?.length ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Nenhum serviço cadastrado.</p>
+            </div>
           ) : (
             <div className="space-y-16">
-              {services?.map((service, index) => {
+              {services.map((service, index) => {
                 const IconComponent = getIcon(service.icon);
                 const isEven = index % 2 === 0;
-                
+                const features = service.features ?? [];
+
                 return (
                   <AnimatedSection key={service.id} delay={index * 0.1}>
-                    <div className={`flex flex-col lg:flex-row gap-8 items-start ${!isEven ? 'lg:flex-row-reverse' : ''}`}>
+                    <div
+                      className={`flex flex-col lg:flex-row gap-8 items-start ${!isEven ? 'lg:flex-row-reverse' : ''}`}
+                    >
                       {/* Icon Card */}
-                      <motion.div 
-                        className="w-full lg:w-1/3"
-                        whileHover={{ scale: 1.02 }}
-                      >
+                      <motion.div className="w-full lg:w-1/3" whileHover={{ scale: 1.02 }}>
                         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 h-full">
                           <CardContent className="p-8 text-center">
                             <motion.div
@@ -100,9 +115,7 @@ export default function Solucoes() {
                             >
                               <IconComponent className="h-10 w-10 text-primary-foreground" />
                             </motion.div>
-                            <h2 className="text-2xl font-display font-bold text-foreground">
-                              {service.title}
-                            </h2>
+                            <h2 className="text-2xl font-display font-bold text-foreground">{service.title}</h2>
                           </CardContent>
                         </Card>
                       </motion.div>
@@ -114,28 +127,28 @@ export default function Solucoes() {
                             <p className="text-muted-foreground text-lg mb-6 leading-relaxed">
                               {service.description}
                             </p>
-                            
+
                             {service.how_we_do && (
-                              <h3 className="font-semibold text-primary mb-4">
-                                {service.how_we_do}
-                              </h3>
+                              <h3 className="font-semibold text-primary mb-4">{service.how_we_do}</h3>
                             )}
-                            
-                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              {service.features.map((feature, i) => (
-                                <motion.li
-                                  key={i}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  whileInView={{ opacity: 1, x: 0 }}
-                                  viewport={{ once: true }}
-                                  transition={{ delay: i * 0.05 }}
-                                  className="flex items-start gap-3 text-muted-foreground"
-                                >
-                                  <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                                  <span>{feature}</span>
-                                </motion.li>
-                              ))}
-                            </ul>
+
+                            {features.length > 0 && (
+                              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {features.map((feature, i) => (
+                                  <motion.li
+                                    key={i}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.05 }}
+                                    className="flex items-start gap-3 text-muted-foreground"
+                                  >
+                                    <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
+                                    <span>{feature}</span>
+                                  </motion.li>
+                                ))}
+                              </ul>
+                            )}
                           </CardContent>
                         </Card>
                       </div>

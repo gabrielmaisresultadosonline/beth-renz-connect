@@ -19,21 +19,53 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { user, loading: authLoading, isAdmin, signIn, signUp } = useAuth();
+  const { user, loading: authLoading, isAdmin, signIn, signUp, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Redirect if already logged in as admin
   useEffect(() => {
     if (authLoading) return;
-    
-    if (user && isAdmin) {
-      navigate('/admin/dashboard', { replace: true });
-      return;
-    }
-    
-    setCheckingAuth(false);
-  }, [user, isAdmin, authLoading, navigate]);
+
+    let cancelled = false;
+
+    const verify = async () => {
+      if (!user) {
+        setCheckingAuth(false);
+        return;
+      }
+
+      if (isAdmin) {
+        navigate('/admin/dashboard', { replace: true });
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('is_current_user_admin');
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error('Admin verification error (login):', error);
+        setCheckingAuth(false);
+        return;
+      }
+
+      if (data) {
+        navigate('/admin/dashboard', { replace: true });
+        return;
+      }
+
+      // Logged in but not admin; clear session to avoid loops
+      await signOut();
+      setCheckingAuth(false);
+    };
+
+    verify();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isAdmin, authLoading, navigate, signOut]);
 
   // Load saved email
   useEffect(() => {
@@ -55,6 +87,14 @@ export default function AdminLogin() {
 
     setLoading(true);
 
+    const persistRememberMe = () => {
+      if (rememberMe) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ email }));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    };
+
     try {
       if (isCreating) {
         // Creating new account
@@ -66,26 +106,43 @@ export default function AdminLogin() {
             description: error.message,
             variant: 'destructive',
           });
-          setLoading(false);
           return;
         }
 
         // Try to bootstrap first admin (only works for designated admin email)
         await supabase.rpc('bootstrap_first_admin', { p_email: email });
 
-        // Save if "remember me" is checked
-        if (rememberMe) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ email }));
-        } else {
-          localStorage.removeItem(STORAGE_KEY);
+        persistRememberMe();
+
+        // Verify admin and redirect
+        const { data: isAdminNow, error: adminError } = await supabase.rpc('is_current_user_admin');
+
+        if (adminError) {
+          console.error('Admin verification error (signup):', adminError);
+          toast({
+            title: 'Erro',
+            description: 'Não foi possível verificar o acesso de administrador.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        if (!isAdminNow) {
+          await signOut();
+          toast({
+            title: 'Acesso negado',
+            description: 'Esta conta não tem permissão de administrador.',
+            variant: 'destructive',
+          });
+          return;
         }
 
         toast({
           title: 'Conta criada com sucesso!',
-          description: 'Você está sendo redirecionado...',
+          description: 'Redirecionando...',
         });
 
-        // The auth state change will trigger the useEffect to redirect
+        navigate('/admin/dashboard', { replace: true });
         return;
       }
 
@@ -98,30 +155,46 @@ export default function AdminLogin() {
           description: 'Email ou senha incorretos.',
           variant: 'destructive',
         });
-        setLoading(false);
         return;
       }
 
-      // Save if "remember me" is checked
-      if (rememberMe) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ email }));
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
+      persistRememberMe();
+
+      const { data: isAdminNow, error: adminError } = await supabase.rpc('is_current_user_admin');
+
+      if (adminError) {
+        console.error('Admin verification error (signin):', adminError);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível verificar o acesso de administrador.',
+          variant: 'destructive',
+        });
+        return;
       }
 
-      // Wait briefly for auth state to propagate, then navigate
-      // The onAuthStateChange will update isAdmin, then useEffect redirects
+      if (!isAdminNow) {
+        await signOut();
+        toast({
+          title: 'Acesso negado',
+          description: 'Esta conta não tem permissão de administrador.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       toast({
         title: 'Login realizado!',
         description: 'Redirecionando...',
       });
 
+      navigate('/admin/dashboard', { replace: true });
     } catch {
       toast({
         title: 'Erro ao entrar',
         description: 'Não foi possível acessar agora. Tente novamente.',
         variant: 'destructive',
       });
+    } finally {
       setLoading(false);
     }
   };
