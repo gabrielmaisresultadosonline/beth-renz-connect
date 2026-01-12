@@ -18,8 +18,10 @@ export function useDynamicFavicon() {
 
         if (data?.metadata) {
           const settings = data.metadata as SiteSettings;
-          if (settings.favicon_url) {
-            updateFavicon(settings.favicon_url);
+          // Use favicon_url if available, otherwise fallback to logo_url
+          const faviconUrl = settings.favicon_url || settings.logo_url;
+          if (faviconUrl) {
+            updateFavicon(faviconUrl);
           }
         }
       } catch (error) {
