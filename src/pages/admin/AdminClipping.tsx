@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { ImageUpload } from '@/components/admin/ImageUpload';
+import { RichEditorWithPreview } from '@/components/admin/RichEditorWithPreview';
 
 interface Clipping {
   id: string;
@@ -19,6 +20,7 @@ interface Clipping {
   link: string | null;
   published_at: string | null;
   created_at: string;
+  content: string | null;
 }
 
 export default function AdminClipping() {
@@ -32,6 +34,7 @@ export default function AdminClipping() {
     image_url: '',
     link: '',
     published_at: '',
+    content: '',
   });
   const { toast } = useToast();
 
@@ -51,6 +54,7 @@ export default function AdminClipping() {
       image_url: formData.image_url || null,
       link: formData.link || null,
       published_at: formData.published_at || null,
+      content: formData.content || null,
     };
 
     let error;
@@ -77,7 +81,7 @@ export default function AdminClipping() {
   };
 
   const resetForm = () => {
-    setFormData({ title: '', source: '', image_url: '', link: '', published_at: '' });
+    setFormData({ title: '', source: '', image_url: '', link: '', published_at: '', content: '' });
     setEditingItem(null);
   };
 
@@ -89,6 +93,7 @@ export default function AdminClipping() {
       image_url: item.image_url || '',
       link: item.link || '',
       published_at: item.published_at ? item.published_at.split('T')[0] : '',
+      content: item.content || '',
     });
     setDialogOpen(true);
   };
@@ -101,33 +106,46 @@ export default function AdminClipping() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Novo Clipping</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editingItem ? 'Editar' : 'Novo'} Clipping</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label>Título *</Label>
-                <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required placeholder="Título da publicação" />
-              </div>
-              <div>
-                <Label>Veículo/Fonte</Label>
-                <Input value={formData.source} onChange={(e) => setFormData({ ...formData, source: e.target.value })} placeholder="Ex: Jornal XYZ, Revista ABC..." />
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div>
+                    <Label>Título *</Label>
+                    <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required placeholder="Título da publicação" />
+                  </div>
+                  <div>
+                    <Label>Veículo/Fonte</Label>
+                    <Input value={formData.source} onChange={(e) => setFormData({ ...formData, source: e.target.value })} placeholder="Ex: Jornal XYZ, Revista ABC..." />
+                  </div>
+                  <div>
+                    <Label>Link da Publicação (opcional)</Label>
+                    <Input value={formData.link} onChange={(e) => setFormData({ ...formData, link: e.target.value })} placeholder="https://..." />
+                  </div>
+                  <div>
+                    <Label>Data de Publicação</Label>
+                    <Input type="date" value={formData.published_at} onChange={(e) => setFormData({ ...formData, published_at: e.target.value })} />
+                  </div>
+                </div>
+                <div>
+                  <ImageUpload
+                    value={formData.image_url}
+                    onChange={(value) => setFormData({ ...formData, image_url: value })}
+                    label="Imagem da Publicação"
+                    folder="clipping"
+                  />
+                </div>
               </div>
               
-              <ImageUpload
-                value={formData.image_url}
-                onChange={(value) => setFormData({ ...formData, image_url: value })}
-                label="Imagem da Publicação"
-                folder="clipping"
+              <RichEditorWithPreview
+                value={formData.content}
+                onChange={(value) => setFormData({ ...formData, content: value })}
+                label="Descrição / Texto (opcional)"
+                placeholder="Adicione uma breve descrição ou o texto completo da matéria..."
+                minRows={6}
               />
               
-              <div>
-                <Label>Link da Publicação (opcional)</Label>
-                <Input value={formData.link} onChange={(e) => setFormData({ ...formData, link: e.target.value })} placeholder="https://..." />
-              </div>
-              <div>
-                <Label>Data de Publicação</Label>
-                <Input type="date" value={formData.published_at} onChange={(e) => setFormData({ ...formData, published_at: e.target.value })} />
-              </div>
               <div className="flex gap-2 justify-end pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
                 <Button type="submit">Salvar</Button>

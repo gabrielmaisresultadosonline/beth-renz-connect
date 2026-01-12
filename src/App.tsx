@@ -26,6 +26,8 @@ import AdminMensagens from "./pages/admin/AdminMensagens";
 import AdminConfig from "./pages/admin/AdminConfig";
 import AdminEquipe from "./pages/admin/AdminEquipe";
 import AdminServicos from "./pages/admin/AdminServicos";
+import AdminSiteSettings from "./pages/admin/AdminSiteSettings";
+import AdminHomepage from "./pages/admin/AdminHomepage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +62,8 @@ const App = () => (
             <Route path="/admin/config" element={<AdminConfig />} />
             <Route path="/admin/equipe" element={<AdminEquipe />} />
             <Route path="/admin/servicos" element={<AdminServicos />} />
+            <Route path="/admin/site-settings" element={<AdminSiteSettings />} />
+            <Route path="/admin/homepage" element={<AdminHomepage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
