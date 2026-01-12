@@ -6,9 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Pin, Calendar, CalendarOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Pin, Calendar, CalendarOff, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { RichEditor } from '@/components/admin/RichEditor';
 import { ImageUpload } from '@/components/admin/ImageUpload';
@@ -31,7 +32,9 @@ export default function AdminPressReleases() {
   const [items, setItems] = useState<PressRelease[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PressRelease | null>(null);
+  const [homepageLimit, setHomepageLimit] = useState(5);
   const [formData, setFormData] = useState({
     title: '',
     summary: '',
@@ -56,8 +59,48 @@ export default function AdminPressReleases() {
     setLoading(false);
   };
 
+  const fetchSettings = async () => {
+    const { data } = await supabase
+      .from('site_content')
+      .select('metadata')
+      .eq('section', 'settings')
+      .single();
+    
+    const metadata = data?.metadata as Record<string, unknown> | null;
+    if (metadata?.press_releases_homepage_limit) {
+      setHomepageLimit(metadata.press_releases_homepage_limit as number);
+    }
+  };
+
+  const saveHomepageLimit = async (limit: number) => {
+    const { data: current } = await supabase
+      .from('site_content')
+      .select('metadata')
+      .eq('section', 'settings')
+      .single();
+    
+    const currentMetadata = (current?.metadata as Record<string, unknown>) || {};
+    const newMetadata = {
+      ...currentMetadata,
+      press_releases_homepage_limit: limit,
+    };
+
+    const { error } = await supabase
+      .from('site_content')
+      .update({ metadata: newMetadata })
+      .eq('section', 'settings');
+
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    } else {
+      setHomepageLimit(limit);
+      toast({ title: 'Configuração salva!' });
+    }
+  };
+
   useEffect(() => {
     fetchItems();
+    fetchSettings();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -198,10 +241,46 @@ export default function AdminPressReleases() {
     <AdminLayout title="Press Releases">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <p className="text-muted-foreground">Gerencie os comunicados de imprensa</p>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />Novo Press Release</Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          {/* Settings Dialog */}
+          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline"><Settings className="h-4 w-4 mr-2" />Configurações</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Configurações de Exibição</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label>Quantidade na Homepage</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Quantos press releases aparecem em destaque na página inicial
+                  </p>
+                  <Select
+                    value={homepageLimit.toString()}
+                    onValueChange={(value) => saveHomepageLimit(parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                        <SelectItem key={num} value={num.toString()}>
+                          {num} {num === 1 ? 'notícia' : 'notícias'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-2" />Novo Press Release</Button>
+            </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingItem ? 'Editar' : 'Novo'} Press Release</DialogTitle>
@@ -304,7 +383,8 @@ export default function AdminPressReleases() {
               </div>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {loading ? (
