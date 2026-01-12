@@ -15,6 +15,7 @@ export default function Contato() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [honeypot, setHoneypot] = useState(''); // Bot detection field
   const { toast } = useToast();
 
   const validateForm = (): boolean => {
@@ -51,6 +52,13 @@ export default function Contato() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Bot detection - if honeypot field is filled, silently reject
+    if (honeypot) {
+      // Simulate success to not reveal bot detection
+      setSent(true);
+      return;
+    }
     
     if (!validateForm()) return;
     
@@ -177,6 +185,17 @@ export default function Contato() {
                     </motion.div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-6">
+                      {/* Honeypot field - hidden from users, catches bots */}
+                      <input
+                        type="text"
+                        name="website"
+                        value={honeypot}
+                        onChange={(e) => setHoneypot(e.target.value)}
+                        style={{ display: 'none' }}
+                        tabIndex={-1}
+                        autoComplete="off"
+                        aria-hidden="true"
+                      />
                       <div>
                         <Input
                           placeholder="Seu nome"
