@@ -46,6 +46,7 @@ export type Database = {
       }
       clipping: {
         Row: {
+          content: string | null
           created_at: string
           id: string
           image_url: string | null
@@ -55,6 +56,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          content?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -64,6 +66,7 @@ export type Database = {
           title: string
         }
         Update: {
+          content?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -131,6 +134,63 @@ export type Database = {
           name?: string
           phone?: string | null
           read?: boolean | null
+        }
+        Relationships: []
+      }
+      homepage_sections: {
+        Row: {
+          display_order: number | null
+          id: string
+          section_key: string
+          section_label: string
+          updated_at: string
+          visible: boolean | null
+        }
+        Insert: {
+          display_order?: number | null
+          id?: string
+          section_key: string
+          section_label: string
+          updated_at?: string
+          visible?: boolean | null
+        }
+        Update: {
+          display_order?: number | null
+          id?: string
+          section_key?: string
+          section_label?: string
+          updated_at?: string
+          visible?: boolean | null
+        }
+        Relationships: []
+      }
+      homepage_slides: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          display_order: number | null
+          id: string
+          image_url: string
+          link: string | null
+          title: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          image_url: string
+          link?: string | null
+          title?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          link?: string | null
+          title?: string | null
         }
         Relationships: []
       }
