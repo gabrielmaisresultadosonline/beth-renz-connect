@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,33 +20,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
+  const mountedRef = useRef(true);
 
-    const applySession = async (nextSession: Session | null) => {
-      if (!isMounted) return;
+  const checkAdminStatus = async (userId: string) => {
+    // Prefer server-side verification (more robust with RLS)
+    const { data: adminData, error: adminError } = await supabase.rpc('is_current_user_admin');
+
+    if (!mountedRef.current) return;
+
+    if (!adminError) {
+      setIsAdmin(Boolean(adminData));
+      return;
+    }
+
+    // Fallback: read own profile row
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!mountedRef.current) return;
+
+    if (profileError) {
+      setIsAdmin(false);
+      return;
+    }
+
+    setIsAdmin(Boolean(profile?.is_admin));
+  };
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    const applySession = (nextSession: Session | null) => {
+      if (!mountedRef.current) return;
 
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
 
-      if (nextSession?.user) {
-        try {
-          await checkAdminStatus(nextSession.user.id);
-        } catch {
-          setIsAdmin(false);
-        }
-      } else {
+      // Do not block the entire app while admin verification runs.
+      setLoading(false);
+
+      if (!nextSession?.user) {
         setIsAdmin(false);
+        return;
       }
 
-      if (isMounted) setLoading(false);
+      // Reset until verified for the current user
+      setIsAdmin(false);
+      void checkAdminStatus(nextSession.user.id);
     };
 
     // Subscribe FIRST (prevents race conditions)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
-      await applySession(nextSession);
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      applySession(nextSession);
     });
 
     // Then get initial session
@@ -55,29 +85,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
-      isMounted = false;
+      mountedRef.current = false;
       subscription.unsubscribe();
     };
   }, []);
-
-  const checkAdminStatus = async (userId: string) => {
-    // Prefer server-side verification (more robust with RLS)
-    const { data: adminData, error: adminError } = await supabase.rpc('is_current_user_admin');
-
-    if (!adminError) {
-      setIsAdmin(Boolean(adminData));
-      return;
-    }
-
-    // Fallback: read own profile row
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    setIsAdmin(Boolean(profile?.is_admin));
-  };
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
