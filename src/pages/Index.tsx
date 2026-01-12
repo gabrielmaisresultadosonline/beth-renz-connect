@@ -25,6 +25,9 @@ interface PressRelease {
   content: string;
   image_url: string | null;
   published_at: string | null;
+  pinned: boolean | null;
+  show_date: boolean | null;
+  display_order: number | null;
 }
 
 interface Client {
@@ -108,7 +111,7 @@ export default function Index() {
         contentData,
         sectionsData
       ] = await Promise.all([
-        supabase.from('press_releases').select('*').eq('published', true).order('published_at', { ascending: false }).limit(20),
+        supabase.from('press_releases').select('*').eq('published', true).order('pinned', { ascending: false }).order('display_order', { ascending: true }).order('published_at', { ascending: false }).limit(20),
         supabase.from('clients').select('*').eq('active', true).order('display_order', { ascending: true }).limit(12),
         supabase.from('tips').select('*').eq('published', true).order('created_at', { ascending: false }).limit(4),
         supabase.from('partners').select('*').eq('active', true).order('display_order', { ascending: true }),
@@ -227,7 +230,7 @@ export default function Index() {
                       <span className="text-primary font-bold">CLIENTES</span>
                       <span className="text-muted-foreground">,</span>
                       <span className="text-primary font-bold">PRESS RELEASE</span>
-                      {featuredRelease.published_at && (
+                      {featuredRelease.show_date !== false && featuredRelease.published_at && (
                         <>
                           <span className="text-muted-foreground ml-2">
                             {format(new Date(featuredRelease.published_at), "dd/MM/yyyy", { locale: ptBR })}
@@ -285,7 +288,7 @@ export default function Index() {
                             <span className="text-primary font-bold">CLIENTES</span>
                             <span className="text-muted-foreground">,</span>
                             <span className="text-primary font-bold">PRESS RELEASE</span>
-                            {release.published_at && (
+                            {release.show_date !== false && release.published_at && (
                               <span className="text-muted-foreground ml-2">
                                 {format(new Date(release.published_at), "dd/MM/yyyy", { locale: ptBR })}
                               </span>

@@ -228,30 +228,39 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          display_order: number | null
           id: string
           image_url: string | null
+          pinned: boolean | null
           published: boolean | null
           published_at: string | null
+          show_date: boolean | null
           summary: string | null
           title: string
         }
         Insert: {
           content: string
           created_at?: string
+          display_order?: number | null
           id?: string
           image_url?: string | null
+          pinned?: boolean | null
           published?: boolean | null
           published_at?: string | null
+          show_date?: boolean | null
           summary?: string | null
           title: string
         }
         Update: {
           content?: string
           created_at?: string
+          display_order?: number | null
           id?: string
           image_url?: string | null
+          pinned?: boolean | null
           published?: boolean | null
           published_at?: string | null
+          show_date?: boolean | null
           summary?: string | null
           title?: string
         }

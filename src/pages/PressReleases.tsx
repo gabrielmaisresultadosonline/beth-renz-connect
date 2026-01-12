@@ -15,6 +15,9 @@ interface PressRelease {
   content: string;
   image_url: string | null;
   published_at: string | null;
+  pinned: boolean | null;
+  show_date: boolean | null;
+  display_order: number | null;
 }
 
 export default function PressReleases() {
@@ -27,6 +30,8 @@ export default function PressReleases() {
         .from('press_releases')
         .select('*')
         .eq('published', true)
+        .order('pinned', { ascending: false })
+        .order('display_order', { ascending: true })
         .order('published_at', { ascending: false });
       
       setReleases(data || []);
@@ -66,13 +71,15 @@ export default function PressReleases() {
                       </div>
                     )}
                     <CardHeader>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                        <Calendar className="h-4 w-4" />
-                        {release.published_at 
-                          ? format(new Date(release.published_at), "d 'de' MMMM 'de' yyyy", { locale: ptBR })
-                          : 'Data não informada'
-                        }
-                      </div>
+                      {release.show_date !== false && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                          <Calendar className="h-4 w-4" />
+                          {release.published_at 
+                            ? format(new Date(release.published_at), "d 'de' MMMM 'de' yyyy", { locale: ptBR })
+                            : 'Data não informada'
+                          }
+                        </div>
+                      )}
                       <CardTitle className="font-display text-lg group-hover:text-primary transition-colors">
                         {release.title}
                       </CardTitle>
