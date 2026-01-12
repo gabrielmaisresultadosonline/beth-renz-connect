@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import logo from '@/assets/logo.png';
 
 const navItems = [
-  { label: 'Blog da Beth', href: '/blog' },
-  { label: 'Clientes', href: '/clientes' },
-  { label: 'Contato', href: '/contato' },
-  { label: 'Nossos Serviços', href: '/solucoes' },
-  { label: 'Parceiros', href: '/parceiros' },
   { label: 'Quem Somos', href: '/quem-somos' },
+  { label: 'Nossas Soluções', href: '/solucoes' },
+  { label: 'Quem Atendemos', href: '/clientes' },
+  { label: 'Press Releases', href: '/press-releases' },
+  { label: 'Clipping', href: '/clipping' },
+  { label: 'Dicas de Comunicação', href: '/dicas' },
+  { label: 'Parceiros', href: '/parceiros' },
+  { label: 'Contato', href: '/contato' },
 ];
 
 export function Header() {
@@ -32,52 +34,59 @@ export function Header() {
       transition={{ duration: 0.6, ease: "easeOut" }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled 
-          ? 'bg-background/95 backdrop-blur-xl shadow-soft border-b border-border' 
-          : 'bg-transparent'
+          ? 'bg-background/98 backdrop-blur-xl shadow-lg border-b border-border' 
+          : 'bg-background/90 backdrop-blur-md'
       }`}
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
-          <Link to="/" className="relative group">
+          <Link to="/" className="relative group flex-shrink-0">
             <motion.img 
               src={logo} 
               alt="Beth Renz" 
-              className="h-12 w-auto transition-all duration-300 group-hover:scale-105"
+              className="h-14 w-auto transition-all duration-300 group-hover:scale-105"
               whileHover={{ scale: 1.05 }}
             />
-            <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center">
-            <div className="flex items-center bg-foreground rounded-sm overflow-hidden">
-              {navItems.map((item, index) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={`relative px-5 py-3 text-sm font-semibold uppercase tracking-wide transition-all duration-300 ${
-                    location.pathname === item.href
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-background hover:bg-primary/90 hover:text-primary-foreground'
-                  }`}
+          <nav className="hidden xl:flex items-center gap-1">
+            {navItems.map((item, index) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={`relative px-4 py-2 text-sm font-medium transition-all duration-300 rounded-md group ${
+                  location.pathname === item.href
+                    ? 'text-primary'
+                    : 'text-foreground/80 hover:text-primary'
+                }`}
+              >
+                <motion.span
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03 }}
                 >
-                  <motion.span
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    {item.label}
-                  </motion.span>
-                </Link>
-              ))}
-            </div>
+                  {item.label}
+                </motion.span>
+                <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-primary transition-all duration-300 ${
+                  location.pathname === item.href ? 'w-3/4' : 'w-0 group-hover:w-1/2'
+                }`} />
+              </Link>
+            ))}
           </nav>
+
+          {/* CTA Button */}
+          <div className="hidden xl:block">
+            <Button asChild className="shine font-semibold">
+              <Link to="/contato">Fale com a Imprensa</Link>
+            </Button>
+          </div>
 
           {/* Mobile Menu Button */}
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="xl:hidden"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             <AnimatePresence mode="wait">
@@ -114,7 +123,7 @@ export function Header() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="lg:hidden overflow-hidden border-t border-border bg-background"
+              className="xl:hidden overflow-hidden border-t border-border bg-background"
             >
               <div className="py-4 space-y-1">
                 {navItems.map((item, index) => (
@@ -127,7 +136,7 @@ export function Header() {
                     <Link
                       to={item.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className={`block px-4 py-3 text-sm font-semibold uppercase tracking-wide transition-all duration-300 rounded-md ${
+                      className={`block px-4 py-3 text-sm font-medium transition-all duration-300 rounded-md ${
                         location.pathname === item.href
                           ? 'text-primary bg-primary/10'
                           : 'text-foreground hover:text-primary hover:bg-primary/5'
@@ -137,6 +146,18 @@ export function Header() {
                     </Link>
                   </motion.div>
                 ))}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: navItems.length * 0.05 }}
+                  className="px-4 pt-4"
+                >
+                  <Button asChild className="w-full shine font-semibold">
+                    <Link to="/contato" onClick={() => setIsMenuOpen(false)}>
+                      Fale com a Imprensa
+                    </Link>
+                  </Button>
+                </motion.div>
               </div>
             </motion.nav>
           )}
