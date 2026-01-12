@@ -94,6 +94,7 @@ export default function Index() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [pressReleasesLimit, setPressReleasesLimit] = useState(5);
   const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>({
     sidebar_search: true,
     sidebar_blog: true,
@@ -109,7 +110,8 @@ export default function Index() {
         tipsData, 
         partnersData,
         contentData,
-        sectionsData
+        sectionsData,
+        settingsData
       ] = await Promise.all([
         supabase.from('press_releases').select('*').eq('published', true).order('pinned', { ascending: false }).order('display_order', { ascending: true }).order('published_at', { ascending: false }).limit(20),
         supabase.from('clients').select('*').eq('active', true).order('display_order', { ascending: true }).limit(12),
@@ -117,6 +119,7 @@ export default function Index() {
         supabase.from('partners').select('*').eq('active', true).order('display_order', { ascending: true }),
         supabase.from('site_content').select('*'),
         supabase.from('homepage_sections').select('section_key, visible'),
+        supabase.from('site_content').select('metadata').eq('section', 'settings').single(),
       ]);
 
       setReleases(releasesData.data || []);
@@ -129,6 +132,12 @@ export default function Index() {
         contentMap[item.section] = item;
       });
       setContent(contentMap);
+
+      // Set press releases limit from settings
+      const settingsMetadata = settingsData.data?.metadata as Record<string, unknown> | null;
+      if (settingsMetadata?.press_releases_homepage_limit) {
+        setPressReleasesLimit(settingsMetadata.press_releases_homepage_limit as number);
+      }
 
       // Set section visibility
       if (sectionsData.data) {
@@ -197,7 +206,8 @@ export default function Index() {
   }, [searchQuery]);
 
   const featuredRelease = releases[0];
-  const otherReleases = releases.slice(1, 6);
+  const otherReleases = releases.slice(1, pressReleasesLimit);
+  const hasMoreReleases = releases.length > pressReleasesLimit;
   const sidebarTip = tips[0];
 
   return (
@@ -312,7 +322,7 @@ export default function Index() {
               )}
 
               {/* View All Button */}
-              {releases.length > 0 && (
+              {hasMoreReleases && (
                 <AnimatedSection className="pt-4">
                   <Button asChild variant="outline" size="lg" className="w-full md:w-auto">
                     <Link to="/press-releases">
