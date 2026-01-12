@@ -206,8 +206,43 @@ export function RichEditor({ value, onChange, placeholder = "Escreva seu conteú
               
               <TabsContent value="upload" className="space-y-4">
                 <div 
-                  className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors outline-none"
                   onClick={() => fileInputRef.current?.click()}
+                  onPaste={async (e) => {
+                    const items = e.clipboardData?.items;
+                    if (!items) return;
+                    for (const item of items) {
+                      if (item.type.startsWith('image/') || item.type.startsWith('video/')) {
+                        e.preventDefault();
+                        const file = item.getAsFile();
+                        if (file) {
+                          const url = await uploadFile(file);
+                          if (url) {
+                            const type = file.type.startsWith('video/') ? 'video' : 'image';
+                            insertMedia(url, type);
+                          }
+                        }
+                        return;
+                      }
+                    }
+                  }}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    const files = e.dataTransfer?.files;
+                    if (!files?.length) return;
+                    const file = files[0];
+                    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+                      const url = await uploadFile(file);
+                      if (url) {
+                        const type = file.type.startsWith('video/') ? 'video' : 'image';
+                        insertMedia(url, type);
+                      }
+                    }
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Área de upload - clique, arraste ou cole com Ctrl+V"
                 >
                   {uploading ? (
                     <Loader2 className="h-8 w-8 mx-auto animate-spin text-muted-foreground" />
@@ -215,7 +250,7 @@ export function RichEditor({ value, onChange, placeholder = "Escreva seu conteú
                     <>
                       <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                       <p className="text-sm text-muted-foreground">
-                        Clique para selecionar ou arraste um arquivo
+                        Clique, arraste ou cole com <kbd className="px-1.5 py-0.5 bg-secondary rounded text-xs font-mono">Ctrl+V</kbd>
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {mediaType === 'image' ? 'JPG, PNG, GIF, WebP' : 'MP4, WebM (máx 16MB)'}
