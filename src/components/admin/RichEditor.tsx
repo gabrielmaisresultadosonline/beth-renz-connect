@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Image, Video, Upload, Link, Loader2, X, Youtube } from 'lucide-react';
+import { Image, Video, Upload, Link, Loader2, X, Youtube, Bold, Heading1, Heading2, Smile } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface RichEditorProps {
   value: string;
@@ -16,15 +17,85 @@ interface RichEditorProps {
   minRows?: number;
 }
 
+const COMMON_EMOJIS = [
+  '😀', '😊', '🎉', '👏', '🚀', '✨', '💡', '🔥', '❤️', '👍',
+  '📢', '📌', '✅', '⭐', '🏆', '💼', '📊', '🎯', '💪', '🤝',
+  '📅', '📍', '🔗', '📧', '📞', '🏢', '👥', '🎓', '📰', '🗓️'
+];
+
 export function RichEditor({ value, onChange, placeholder = "Escreva seu conteúdo aqui...", minRows = 10 }: RichEditorProps) {
   const [uploading, setUploading] = useState(false);
   const [mediaDialogOpen, setMediaDialogOpen] = useState(false);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [urlInput, setUrlInput] = useState('');
   const [videoEmbedUrl, setVideoEmbedUrl] = useState('');
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const insertAtCursor = (text: string, wrapStart = '', wrapEnd = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = value.substring(start, end);
+    
+    let newText: string;
+    if (wrapStart && wrapEnd) {
+      // Wrap selected text
+      newText = value.substring(0, start) + wrapStart + selectedText + wrapEnd + value.substring(end);
+    } else {
+      // Just insert
+      newText = value.substring(0, start) + text + value.substring(end);
+    }
+    
+    onChange(newText);
+    
+    // Focus and set cursor position
+    setTimeout(() => {
+      textarea.focus();
+      const newPos = wrapStart ? start + wrapStart.length + selectedText.length + wrapEnd.length : start + text.length;
+      textarea.setSelectionRange(newPos, newPos);
+    }, 0);
+  };
+
+  const formatBold = () => {
+    insertAtCursor('', '**', '**');
+  };
+
+  const formatHeading1 = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    const beforeLine = value.substring(0, lineStart);
+    const afterLineStart = value.substring(lineStart);
+    
+    // Add heading prefix
+    const newValue = beforeLine + '# ' + afterLineStart;
+    onChange(newValue);
+  };
+
+  const formatHeading2 = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    const beforeLine = value.substring(0, lineStart);
+    const afterLineStart = value.substring(lineStart);
+    
+    const newValue = beforeLine + '## ' + afterLineStart;
+    onChange(newValue);
+  };
+
+  const insertEmoji = (emoji: string) => {
+    insertAtCursor(emoji);
+    setEmojiOpen(false);
+  };
 
   const uploadFile = async (file: File): Promise<string | null> => {
     if (file.size > 16 * 1024 * 1024) {
@@ -166,7 +237,44 @@ export function RichEditor({ value, onChange, placeholder = "Escreva seu conteú
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-2 p-2 bg-secondary/30 rounded-t-lg border border-b-0">
+      <div className="flex flex-wrap gap-1 p-2 bg-secondary/30 rounded-t-lg border border-b-0">
+        {/* Formatting buttons */}
+        <Button type="button" variant="ghost" size="sm" onClick={formatBold} title="Negrito (selecione o texto)">
+          <Bold className="h-4 w-4" />
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={formatHeading1} title="Título Grande">
+          <Heading1 className="h-4 w-4" />
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={formatHeading2} title="Subtítulo">
+          <Heading2 className="h-4 w-4" />
+        </Button>
+        
+        {/* Emoji picker */}
+        <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="ghost" size="sm" title="Inserir Emoji">
+              <Smile className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-2" align="start">
+            <div className="grid grid-cols-6 gap-1">
+              {COMMON_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="p-2 text-lg hover:bg-secondary rounded transition-colors"
+                  onClick={() => insertEmoji(emoji)}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <div className="w-px h-6 bg-border mx-1 self-center" />
+
+        {/* Media buttons */}
         <Dialog open={mediaDialogOpen} onOpenChange={setMediaDialogOpen}>
           <DialogTrigger asChild>
             <Button type="button" variant="ghost" size="sm" onClick={() => setMediaType('image')}>
