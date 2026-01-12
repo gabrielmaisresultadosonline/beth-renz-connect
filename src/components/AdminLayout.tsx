@@ -42,38 +42,42 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children, title }: AdminLayoutProps) {
-  const { user, isAdmin, loading, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [verifyingAdmin, setVerifyingAdmin] = useState(true);
+  const [adminVerified, setAdminVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
     const verifyAdminAccess = async () => {
       // Wait for auth to finish loading
       if (loading) return;
-      
+
       if (!user) {
+        setAdminVerified(false);
         navigate('/admin');
         return;
       }
-      
+
+      setAdminVerified(null);
+
       // Server-side verification using RPC
       const { data: isAdminVerified, error } = await supabase.rpc('is_current_user_admin');
-      
+
       if (error || !isAdminVerified) {
         console.error('Admin verification failed:', error);
+        setAdminVerified(false);
         navigate('/admin');
         return;
       }
-      
-      setVerifyingAdmin(false);
+
+      setAdminVerified(true);
     };
 
     verifyAdminAccess();
   }, [user, loading, navigate]);
 
-  if (loading || verifyingAdmin) {
+  if (loading || adminVerified === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-secondary">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -81,7 +85,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
     );
   }
 
-  if (!user || !isAdmin) return null;
+  if (!user || adminVerified === false) return null;
 
   return (
     <div className="min-h-screen bg-secondary flex">

@@ -21,41 +21,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkAdminStatus(session.user.id);
-      }
-      setLoading(false);
-    });
+    let isMounted = true;
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await checkAdminStatus(session.user.id);
-        } else {
+    const applySession = async (nextSession: Session | null) => {
+      if (!isMounted) return;
+
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+
+      if (nextSession?.user) {
+        try {
+          await checkAdminStatus(nextSession.user.id);
+        } catch {
           setIsAdmin(false);
         }
-        setLoading(false);
+      } else {
+        setIsAdmin(false);
       }
-    );
 
-    return () => subscription.unsubscribe();
+      if (isMounted) setLoading(false);
+    };
+
+    // Subscribe FIRST (prevents race conditions)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+      await applySession(nextSession);
+    });
+
+    // Then get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      applySession(session);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const checkAdminStatus = async (userId: string) => {
-    const { data } = await supabase
+    // Prefer server-side verification (more robust with RLS)
+    const { data: adminData, error: adminError } = await supabase.rpc('is_current_user_admin');
+
+    if (!adminError) {
+      setIsAdmin(Boolean(adminData));
+      return;
+    }
+
+    // Fallback: read own profile row
+    const { data: profile } = await supabase
       .from('profiles')
       .select('is_admin')
       .eq('user_id', userId)
-      .single();
-    
-    setIsAdmin(data?.is_admin ?? false);
+      .maybeSingle();
+
+    setIsAdmin(Boolean(profile?.is_admin));
   };
 
   const signIn = async (email: string, password: string) => {
@@ -64,7 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
+    });
     return { error };
   };
 

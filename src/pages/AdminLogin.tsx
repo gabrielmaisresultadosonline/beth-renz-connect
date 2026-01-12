@@ -38,67 +38,78 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+
     setLoading(true);
-    
-    if (isCreating) {
-      // Creating new account
-      const { error } = await signUp(email, password);
-      setLoading(false);
-      
-      if (error) {
-        toast({ 
-          title: 'Erro ao criar conta', 
-          description: error.message, 
-          variant: 'destructive' 
-        });
-      } else {
+
+    try {
+      if (isCreating) {
+        // Creating new account
+        const { error } = await signUp(email, password);
+
+        if (error) {
+          toast({
+            title: 'Erro ao criar conta',
+            description: error.message,
+            variant: 'destructive',
+          });
+          return;
+        }
+
         // Try to bootstrap first admin (only works for designated admin email)
         const { error: rpcError } = await supabase.rpc('bootstrap_first_admin', { p_email: email });
-        
+
         // Salvar se "lembrar-me" estiver marcado
         if (rememberMe) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ email }));
         } else {
           localStorage.removeItem(STORAGE_KEY);
         }
-        
+
         if (rpcError) {
-          // Normal for non-admin users - they can still use the app
-          toast({ 
-            title: 'Conta criada com sucesso!', 
+          toast({
+            title: 'Conta criada com sucesso!',
             description: 'Faça login para continuar.',
           });
         } else {
-          toast({ 
-            title: 'Conta de administrador criada!', 
+          toast({
+            title: 'Conta de administrador criada!',
             description: 'Você já está logado como administrador.',
           });
         }
-        navigate('/admin/dashboard');
+
+        navigate('/admin/dashboard', { replace: true });
+        return;
       }
-    } else {
+
       // Signing in
       const { error } = await signIn(email, password);
-      
+
       if (error) {
-        setLoading(false);
-        toast({ 
-          title: 'Erro', 
-          description: 'Email ou senha incorretos.', 
-          variant: 'destructive' 
+        toast({
+          title: 'Erro',
+          description: 'Email ou senha incorretos.',
+          variant: 'destructive',
         });
-      } else {
-        // Salvar se "lembrar-me" estiver marcado
-        if (rememberMe) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ email }));
-        } else {
-          localStorage.removeItem(STORAGE_KEY);
-        }
-        
-        // Wait for auth state to update before navigating
-        // The loading state will be cleared by the redirect
-        navigate('/admin/dashboard');
+        return;
       }
+
+      // Salvar se "lembrar-me" estiver marcado
+      if (rememberMe) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ email }));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+
+      navigate('/admin/dashboard', { replace: true });
+    } catch {
+      toast({
+        title: 'Erro ao entrar',
+        description: 'Não foi possível acessar agora. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
