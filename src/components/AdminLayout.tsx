@@ -46,29 +46,28 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
 
   useEffect(() => {
     const verifyAdminAccess = async () => {
-      if (!loading && user) {
-        // Server-side verification using RPC
-        const { data: isAdminVerified, error } = await supabase.rpc('is_current_user_admin');
-        
-        if (error || !isAdminVerified) {
-          navigate('/admin');
-          return;
-        }
-        setVerifyingAdmin(false);
-      } else if (!loading && !user) {
+      // Wait for auth to finish loading
+      if (loading) return;
+      
+      if (!user) {
         navigate('/admin');
+        return;
       }
+      
+      // Server-side verification using RPC
+      const { data: isAdminVerified, error } = await supabase.rpc('is_current_user_admin');
+      
+      if (error || !isAdminVerified) {
+        console.error('Admin verification failed:', error);
+        navigate('/admin');
+        return;
+      }
+      
+      setVerifyingAdmin(false);
     };
 
     verifyAdminAccess();
   }, [user, loading, navigate]);
-
-  // Client-side check as fallback
-  useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
-      navigate('/admin');
-    }
-  }, [user, isAdmin, loading, navigate]);
 
   if (loading || verifyingAdmin) {
     return (

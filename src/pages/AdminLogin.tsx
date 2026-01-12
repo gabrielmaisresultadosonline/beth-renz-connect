@@ -79,9 +79,9 @@ export default function AdminLogin() {
     } else {
       // Signing in
       const { error } = await signIn(email, password);
-      setLoading(false);
       
       if (error) {
+        setLoading(false);
         toast({ 
           title: 'Erro', 
           description: 'Email ou senha incorretos.', 
@@ -95,6 +95,8 @@ export default function AdminLogin() {
           localStorage.removeItem(STORAGE_KEY);
         }
         
+        // Wait for auth state to update before navigating
+        // The loading state will be cleared by the redirect
         navigate('/admin/dashboard');
       }
     }
