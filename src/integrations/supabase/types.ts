@@ -262,7 +262,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
-          is_admin: boolean | null
+          is_admin: boolean
           updated_at: string
           user_id: string
         }
@@ -270,7 +270,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
-          is_admin?: boolean | null
+          is_admin?: boolean
           updated_at?: string
           user_id: string
         }
@@ -278,7 +278,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
-          is_admin?: boolean | null
+          is_admin?: boolean
           updated_at?: string
           user_id?: string
         }
