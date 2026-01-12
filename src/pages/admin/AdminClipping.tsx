@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 
 interface Clipping {
   id: string;
@@ -94,21 +95,40 @@ export default function AdminClipping() {
 
   return (
     <AdminLayout title="Clipping">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <p className="text-muted-foreground">Gerencie as publicações na mídia</p>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />Novo</Button>
+            <Button><Plus className="h-4 w-4 mr-2" />Novo Clipping</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>{editingItem ? 'Editar' : 'Novo'} Clipping</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div><Label>Título *</Label><Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required /></div>
-              <div><Label>Veículo/Fonte</Label><Input value={formData.source} onChange={(e) => setFormData({ ...formData, source: e.target.value })} /></div>
-              <div><Label>URL da Imagem</Label><Input value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} placeholder="https://..." /></div>
-              <div><Label>Link da Publicação</Label><Input value={formData.link} onChange={(e) => setFormData({ ...formData, link: e.target.value })} placeholder="https://..." /></div>
-              <div><Label>Data de Publicação</Label><Input type="date" value={formData.published_at} onChange={(e) => setFormData({ ...formData, published_at: e.target.value })} /></div>
-              <div className="flex gap-2 justify-end">
+              <div>
+                <Label>Título *</Label>
+                <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required placeholder="Título da publicação" />
+              </div>
+              <div>
+                <Label>Veículo/Fonte</Label>
+                <Input value={formData.source} onChange={(e) => setFormData({ ...formData, source: e.target.value })} placeholder="Ex: Jornal XYZ, Revista ABC..." />
+              </div>
+              
+              <ImageUpload
+                value={formData.image_url}
+                onChange={(value) => setFormData({ ...formData, image_url: value })}
+                label="Imagem da Publicação"
+                folder="clipping"
+              />
+              
+              <div>
+                <Label>Link da Publicação (opcional)</Label>
+                <Input value={formData.link} onChange={(e) => setFormData({ ...formData, link: e.target.value })} placeholder="https://..." />
+              </div>
+              <div>
+                <Label>Data de Publicação</Label>
+                <Input type="date" value={formData.published_at} onChange={(e) => setFormData({ ...formData, published_at: e.target.value })} />
+              </div>
+              <div className="flex gap-2 justify-end pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
                 <Button type="submit">Salvar</Button>
               </div>
@@ -122,9 +142,9 @@ export default function AdminClipping() {
       ) : items.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum clipping cadastrado</CardContent></Card>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {items.map((item) => (
-            <Card key={item.id} className="relative group overflow-hidden">
+            <Card key={item.id} className="relative group overflow-hidden transition-shadow hover:shadow-lg">
               <div className="aspect-[4/3] bg-secondary">
                 {item.image_url ? (
                   <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
@@ -134,17 +154,17 @@ export default function AdminClipping() {
               </div>
               <CardContent className="p-3">
                 <p className="text-sm font-medium line-clamp-2">{item.title}</p>
-                {item.source && <p className="text-xs text-muted-foreground">{item.source}</p>}
+                {item.source && <p className="text-xs text-muted-foreground mt-1">{item.source}</p>}
                 {item.published_at && <p className="text-xs text-muted-foreground">{format(new Date(item.published_at), 'dd/MM/yyyy')}</p>}
               </CardContent>
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                 {item.link && (
                   <a href={item.link} target="_blank" rel="noopener noreferrer">
-                    <Button size="icon" variant="secondary" className="h-7 w-7"><ExternalLink className="h-3 w-3" /></Button>
+                    <Button size="icon" variant="secondary" className="h-8 w-8"><ExternalLink className="h-4 w-4" /></Button>
                   </a>
                 )}
-                <Button size="icon" variant="secondary" className="h-7 w-7" onClick={() => openEdit(item)}><Pencil className="h-3 w-3" /></Button>
-                <Button size="icon" variant="secondary" className="h-7 w-7 text-destructive" onClick={() => handleDelete(item.id)}><Trash2 className="h-3 w-3" /></Button>
+                <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => openEdit(item)}><Pencil className="h-4 w-4" /></Button>
+                <Button size="icon" variant="secondary" className="h-8 w-8 text-destructive" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </Card>
           ))}
