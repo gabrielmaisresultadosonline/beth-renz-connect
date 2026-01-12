@@ -18,11 +18,24 @@ export default function AdminLogin() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const { user, loading: authLoading, isAdmin, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Carregar email salvo ao iniciar
+  // Redirect if already logged in as admin
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (user && isAdmin) {
+      navigate('/admin/dashboard', { replace: true });
+      return;
+    }
+    
+    setCheckingAuth(false);
+  }, [user, isAdmin, authLoading, navigate]);
+
+  // Load saved email
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -53,32 +66,26 @@ export default function AdminLogin() {
             description: error.message,
             variant: 'destructive',
           });
+          setLoading(false);
           return;
         }
 
         // Try to bootstrap first admin (only works for designated admin email)
-        const { error: rpcError } = await supabase.rpc('bootstrap_first_admin', { p_email: email });
+        await supabase.rpc('bootstrap_first_admin', { p_email: email });
 
-        // Salvar se "lembrar-me" estiver marcado
+        // Save if "remember me" is checked
         if (rememberMe) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ email }));
         } else {
           localStorage.removeItem(STORAGE_KEY);
         }
 
-        if (rpcError) {
-          toast({
-            title: 'Conta criada com sucesso!',
-            description: 'Faça login para continuar.',
-          });
-        } else {
-          toast({
-            title: 'Conta de administrador criada!',
-            description: 'Você já está logado como administrador.',
-          });
-        }
+        toast({
+          title: 'Conta criada com sucesso!',
+          description: 'Você está sendo redirecionado...',
+        });
 
-        navigate('/admin/dashboard', { replace: true });
+        // The auth state change will trigger the useEffect to redirect
         return;
       }
 
@@ -91,27 +98,42 @@ export default function AdminLogin() {
           description: 'Email ou senha incorretos.',
           variant: 'destructive',
         });
+        setLoading(false);
         return;
       }
 
-      // Salvar se "lembrar-me" estiver marcado
+      // Save if "remember me" is checked
       if (rememberMe) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ email }));
       } else {
         localStorage.removeItem(STORAGE_KEY);
       }
 
-      navigate('/admin/dashboard', { replace: true });
+      // Wait briefly for auth state to propagate, then navigate
+      // The onAuthStateChange will update isAdmin, then useEffect redirects
+      toast({
+        title: 'Login realizado!',
+        description: 'Redirecionando...',
+      });
+
     } catch {
       toast({
         title: 'Erro ao entrar',
         description: 'Não foi possível acessar agora. Tente novamente.',
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };
+
+  // Show loading while checking auth status
+  if (checkingAuth || authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-secondary">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary p-4">

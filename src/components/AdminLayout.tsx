@@ -42,7 +42,7 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children, title }: AdminLayoutProps) {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,31 +51,49 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   useEffect(() => {
     const verifyAdminAccess = async () => {
       // Wait for auth to finish loading
-      if (loading) return;
+      if (loading) {
+        setAdminVerified(null);
+        return;
+      }
 
       if (!user) {
         setAdminVerified(false);
-        navigate('/admin');
+        navigate('/admin', { replace: true });
         return;
       }
 
-      setAdminVerified(null);
+      // First check from context (already verified in auth provider)
+      if (isAdmin) {
+        setAdminVerified(true);
+        return;
+      }
 
-      // Server-side verification using RPC
-      const { data: isAdminVerified, error } = await supabase.rpc('is_current_user_admin');
+      // Double-check with server-side RPC verification
+      try {
+        const { data: isAdminResult, error } = await supabase.rpc('is_current_user_admin');
 
-      if (error || !isAdminVerified) {
-        console.error('Admin verification failed:', error);
+        if (error) {
+          console.error('Admin verification error:', error);
+          setAdminVerified(false);
+          navigate('/admin', { replace: true });
+          return;
+        }
+
+        if (isAdminResult) {
+          setAdminVerified(true);
+        } else {
+          setAdminVerified(false);
+          navigate('/admin', { replace: true });
+        }
+      } catch (err) {
+        console.error('Admin verification failed:', err);
         setAdminVerified(false);
-        navigate('/admin');
-        return;
+        navigate('/admin', { replace: true });
       }
-
-      setAdminVerified(true);
     };
 
     verifyAdminAccess();
-  }, [user, loading, navigate]);
+  }, [user, loading, isAdmin, navigate]);
 
   if (loading || adminVerified === null) {
     return (
@@ -86,6 +104,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   }
 
   if (!user || adminVerified === false) return null;
+
 
   return (
     <div className="min-h-screen bg-secondary flex">
