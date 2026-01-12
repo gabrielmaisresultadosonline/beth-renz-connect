@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+
 interface PageHeroProps {
   title: string;
   subtitle?: string;
@@ -5,16 +7,31 @@ interface PageHeroProps {
 
 export function PageHero({ title, subtitle }: PageHeroProps) {
   return (
-    <section className="relative py-20 bg-gradient-primary overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
+    <section className="relative py-24 md:py-32 bg-foreground overflow-hidden">
+      {/* Background effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+      </div>
+      
       <div className="container mx-auto px-4 text-center relative z-10">
-        <h1 className="text-4xl md:text-5xl font-display font-bold text-primary-foreground mb-4 animate-fade-up">
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-background mb-4"
+        >
           {title}
-        </h1>
+        </motion.h1>
         {subtitle && (
-          <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto animate-fade-up" style={{ animationDelay: '0.1s' }}>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+            className="text-lg md:text-xl text-background/70 max-w-2xl mx-auto"
+          >
             {subtitle}
-          </p>
+          </motion.p>
         )}
       </div>
     </section>
