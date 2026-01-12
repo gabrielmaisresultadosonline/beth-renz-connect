@@ -178,7 +178,6 @@ export default function Index() {
                         to={`/press-releases/${release.id}`}
                         className="group flex gap-4"
                       >
-                      >
                         <div className="flex-shrink-0 w-32 h-24 md:w-48 md:h-32 rounded-lg overflow-hidden">
                           <img
                             src={release.image_url || heroBg}
