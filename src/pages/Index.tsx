@@ -3,23 +3,16 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Layout } from '@/components/Layout';
 import { AnimatedSection } from '@/components/AnimatedSection';
-import { NewsSlider } from '@/components/NewsSlider';
-import { NewsCard } from '@/components/NewsCard';
-import { ClippingGallery } from '@/components/ClippingGallery';
-import { ServiceIcon } from '@/components/ServiceIcon';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   ArrowRight, 
   Newspaper, 
   Users, 
-  MessageSquare, 
-  Megaphone, 
-  FileText,
-  Radio,
-  BarChart3,
   X,
-  Calendar
+  Calendar,
+  Search
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -39,15 +32,6 @@ interface Client {
   name: string;
   logo_url: string | null;
   website: string | null;
-}
-
-interface Clipping {
-  id: string;
-  title: string;
-  source: string | null;
-  image_url: string | null;
-  link: string | null;
-  published_at: string | null;
 }
 
 interface Tip {
@@ -74,62 +58,27 @@ interface SiteContent {
   metadata: any;
 }
 
-const services = [
-  {
-    icon: Newspaper,
-    title: 'Assessoria de Imprensa',
-    description: 'Relacionamento estratégico com veículos de comunicação.',
-  },
-  {
-    icon: FileText,
-    title: 'Produção de Conteúdo',
-    description: 'Textos jornalísticos de alta qualidade.',
-  },
-  {
-    icon: MessageSquare,
-    title: 'Gestão de Comunicação',
-    description: 'Comunicação institucional integrada.',
-  },
-  {
-    icon: Megaphone,
-    title: 'Press Releases',
-    description: 'Comunicados estratégicos para a mídia.',
-  },
-  {
-    icon: Radio,
-    title: 'Media Training',
-    description: 'Preparação para entrevistas e aparições.',
-  },
-  {
-    icon: BarChart3,
-    title: 'Clipping e Monitoramento',
-    description: 'Acompanhamento de mídia espontânea.',
-  },
-];
-
 export default function Index() {
   const [releases, setReleases] = useState<PressRelease[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [clippings, setClippings] = useState<Clipping[]>([]);
   const [tips, setTips] = useState<Tip[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [content, setContent] = useState<Record<string, SiteContent>>({});
   const [selectedRelease, setSelectedRelease] = useState<PressRelease | null>(null);
   const [selectedTip, setSelectedTip] = useState<Tip | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     async function fetchData() {
       const [
         releasesData, 
         clientsData, 
-        clippingsData, 
         tipsData, 
         partnersData,
         contentData
       ] = await Promise.all([
-        supabase.from('press_releases').select('*').eq('published', true).order('published_at', { ascending: false }).limit(10),
+        supabase.from('press_releases').select('*').eq('published', true).order('published_at', { ascending: false }).limit(20),
         supabase.from('clients').select('*').eq('active', true).order('display_order', { ascending: true }).limit(12),
-        supabase.from('clipping').select('*').order('published_at', { ascending: false }).limit(8),
         supabase.from('tips').select('*').eq('published', true).order('created_at', { ascending: false }).limit(4),
         supabase.from('partners').select('*').eq('active', true).order('display_order', { ascending: true }),
         supabase.from('site_content').select('*'),
@@ -137,7 +86,6 @@ export default function Index() {
 
       setReleases(releasesData.data || []);
       setClients(clientsData.data || []);
-      setClippings(clippingsData.data || []);
       setTips(tipsData.data || []);
       setPartners(partnersData.data || []);
       
@@ -151,81 +99,296 @@ export default function Index() {
     fetchData();
   }, []);
 
-  const sliderSlides = releases.slice(0, 5).map(release => ({
-    id: release.id,
-    title: release.title,
-    subtitle: release.summary || '',
-    image_url: release.image_url,
-  }));
-
-  const weeklyHighlights = releases.slice(0, 4);
-  const recentReleases = releases.slice(0, 5);
+  const featuredRelease = releases[0];
+  const otherReleases = releases.slice(1, 6);
+  const sidebarTip = tips[0];
 
   return (
     <Layout>
-      {/* 1. Slider Principal - Destaques de Notícias */}
-      <NewsSlider 
-        slides={sliderSlides}
-        onSlideClick={(slide) => {
-          const release = releases.find(r => r.id === slide.id);
-          if (release) setSelectedRelease(release);
-        }}
-      />
-
-      {/* 2. Destaques da Semana */}
-      <section className="py-16 bg-background">
+      {/* Main Content - Portal Style */}
+      <main className="pt-24 pb-16 bg-background">
         <div className="container mx-auto px-4">
-          <AnimatedSection className="mb-10">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-                  Destaques da Semana
-                </h2>
-                <p className="text-muted-foreground mt-2">As principais notícias dos nossos clientes</p>
-              </div>
-              <Button asChild variant="outline" className="hidden md:flex">
-                <Link to="/press-releases">
-                  Ver todos
-                  <ArrowRight className="ml-2 h-4 w-4" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* Main Column - 2/3 width */}
+            <div className="lg:col-span-2 space-y-8">
+              
+              {/* Featured Article */}
+              {featuredRelease ? (
+                <AnimatedSection>
+                  <article 
+                    className="group cursor-pointer"
+                    onClick={() => setSelectedRelease(featuredRelease)}
+                  >
+                    <div className="relative aspect-[16/9] rounded-lg overflow-hidden mb-4">
+                      <img
+                        src={featuredRelease.image_url || heroBg}
+                        alt={featuredRelease.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent" />
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide mb-2">
+                      <span className="text-primary font-bold">CLIENTES</span>
+                      <span className="text-muted-foreground">,</span>
+                      <span className="text-primary font-bold">PRESS RELEASE</span>
+                      {featuredRelease.published_at && (
+                        <>
+                          <span className="text-muted-foreground ml-2">
+                            {format(new Date(featuredRelease.published_at), "dd/MM/yyyy", { locale: ptBR })}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    
+                    <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold text-foreground mb-3 group-hover:text-primary transition-colors leading-tight">
+                      {featuredRelease.title}
+                    </h1>
+                    
+                    {featuredRelease.summary && (
+                      <p className="text-muted-foreground text-lg mb-4">
+                        {featuredRelease.summary}
+                      </p>
+                    )}
+                    
+                    <Button className="bg-primary hover:bg-primary/90">
+                      LEIA MAIS
+                    </Button>
+                  </article>
+                </AnimatedSection>
+              ) : (
+                <div className="text-center py-20 bg-secondary rounded-xl">
+                  <Newspaper className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h2 className="text-2xl font-display font-bold text-foreground mb-2">
+                    Em breve, notícias em destaque
+                  </h2>
+                  <p className="text-muted-foreground">
+                    Acompanhe as principais notícias dos nossos clientes
+                  </p>
+                </div>
+              )}
+
+              {/* Other Articles - List Style */}
+              {otherReleases.length > 0 && (
+                <div className="space-y-6 border-t border-border pt-8">
+                  {otherReleases.map((release, index) => (
+                    <AnimatedSection key={release.id} delay={index * 0.1}>
+                      <article 
+                        className="group flex gap-4 cursor-pointer"
+                        onClick={() => setSelectedRelease(release)}
+                      >
+                        <div className="flex-shrink-0 w-32 h-24 md:w-48 md:h-32 rounded-lg overflow-hidden">
+                          <img
+                            src={release.image_url || heroBg}
+                            alt={release.title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                        </div>
+                        
+                        <div className="flex-grow min-w-0">
+                          <div className="flex items-center gap-2 text-xs uppercase tracking-wide mb-1">
+                            <span className="text-primary font-bold">CLIENTES</span>
+                            <span className="text-muted-foreground">,</span>
+                            <span className="text-primary font-bold">PRESS RELEASE</span>
+                            {release.published_at && (
+                              <span className="text-muted-foreground ml-2">
+                                {format(new Date(release.published_at), "dd/MM/yyyy", { locale: ptBR })}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <h2 className="text-lg md:text-xl font-display font-bold text-foreground mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                            {release.title}
+                          </h2>
+                          
+                          {release.summary && (
+                            <p className="text-muted-foreground text-sm line-clamp-2 hidden md:block">
+                              {release.summary}
+                            </p>
+                          )}
+                        </div>
+                      </article>
+                    </AnimatedSection>
+                  ))}
+                </div>
+              )}
+
+              {/* View All Button */}
+              {releases.length > 0 && (
+                <AnimatedSection className="pt-4">
+                  <Button asChild variant="outline" size="lg" className="w-full md:w-auto">
+                    <Link to="/press-releases">
+                      Ver Todos os Press Releases
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </AnimatedSection>
+              )}
+            </div>
+
+            {/* Sidebar - 1/3 width */}
+            <aside className="space-y-8">
+              
+              {/* Search Box */}
+              <AnimatedSection>
+                <div className="relative">
+                  <Input
+                    type="search"
+                    placeholder="Pesquisar ..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 bg-secondary border-0"
+                  />
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+              </AnimatedSection>
+
+              {/* Blog da Beth Section */}
+              <AnimatedSection delay={0.1}>
+                <div className="bg-primary text-primary-foreground px-6 py-4 font-display font-bold text-lg uppercase tracking-wide">
+                  Blog da Beth
+                </div>
+                
+                {sidebarTip ? (
+                  <article 
+                    className="bg-card border border-border border-t-0 p-4 cursor-pointer group"
+                    onClick={() => setSelectedTip(sidebarTip)}
+                  >
+                    {sidebarTip.image_url && (
+                      <div className="aspect-[16/10] rounded overflow-hidden mb-4">
+                        <img
+                          src={sidebarTip.image_url}
+                          alt={sidebarTip.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide mb-2">
+                      <span className="text-primary font-bold">BLOG DA BETH</span>
+                      <span className="text-muted-foreground">
+                        {format(new Date(sidebarTip.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      </span>
+                    </div>
+                    
+                    <h3 className="text-xl font-display font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
+                      {sidebarTip.title}
+                    </h3>
+                    
+                    <p className="text-muted-foreground text-sm mb-4 line-clamp-4">
+                      {sidebarTip.content.substring(0, 200)}...
+                    </p>
+                    
+                    <Button size="sm" className="bg-primary hover:bg-primary/90">
+                      LEIA MAIS
+                    </Button>
+                  </article>
+                ) : (
+                  <div className="bg-card border border-border border-t-0 p-6 text-center">
+                    <p className="text-muted-foreground text-sm">
+                      Em breve, dicas de comunicação
+                    </p>
+                  </div>
+                )}
+
+                <Link 
+                  to="/dicas" 
+                  className="block text-center py-3 text-primary font-semibold hover:underline"
+                >
+                  Ver todos os artigos →
                 </Link>
-              </Button>
-            </div>
-          </AnimatedSection>
+              </AnimatedSection>
 
-          {weeklyHighlights.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {weeklyHighlights.map((release, index) => (
-                <NewsCard
-                  key={release.id}
-                  title={release.title}
-                  summary={release.summary || undefined}
-                  imageUrl={release.image_url || undefined}
-                  date={release.published_at || undefined}
-                  category="Press Release"
-                  index={index}
-                  onClick={() => setSelectedRelease(release)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-secondary rounded-2xl">
-              <Newspaper className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Em breve, notícias em destaque</p>
-            </div>
-          )}
+              {/* Quem Atendemos */}
+              <AnimatedSection delay={0.2}>
+                <div className="bg-foreground text-background px-6 py-4 font-display font-bold text-lg uppercase tracking-wide">
+                  Quem Atendemos
+                </div>
+                
+                <div className="bg-card border border-border border-t-0 p-4">
+                  {clients.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-3">
+                      {clients.slice(0, 6).map((client) => (
+                        <a
+                          key={client.id}
+                          href={client.website || '#'}
+                          target={client.website ? '_blank' : undefined}
+                          rel="noopener noreferrer"
+                          className="aspect-[3/2] bg-secondary rounded p-2 flex items-center justify-center hover:shadow-md transition-shadow"
+                        >
+                          {client.logo_url ? (
+                            <img
+                              src={client.logo_url}
+                              alt={client.name}
+                              className="max-w-full max-h-full object-contain filter grayscale hover:grayscale-0 transition-all duration-300"
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground text-center">{client.name}</span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-sm text-center py-4">
+                      Em breve, nossos clientes
+                    </p>
+                  )}
+                  
+                  <Link 
+                    to="/clientes" 
+                    className="block text-center py-3 text-primary font-semibold hover:underline mt-2"
+                  >
+                    Ver todos →
+                  </Link>
+                </div>
+              </AnimatedSection>
 
-          <div className="mt-8 text-center md:hidden">
-            <Button asChild variant="outline">
-              <Link to="/press-releases">
-                Ver todos
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+              {/* Parceiros */}
+              {partners.length > 0 && (
+                <AnimatedSection delay={0.3}>
+                  <div className="bg-secondary px-6 py-4 font-display font-bold text-lg uppercase tracking-wide text-foreground">
+                    Parceiros
+                  </div>
+                  
+                  <div className="bg-card border border-border border-t-0 p-4">
+                    <div className="flex flex-wrap gap-3 justify-center">
+                      {partners.slice(0, 4).map((partner) => (
+                        <a
+                          key={partner.id}
+                          href={partner.website || '#'}
+                          target={partner.website ? '_blank' : undefined}
+                          rel="noopener noreferrer"
+                          className="h-12 px-4 bg-secondary rounded flex items-center justify-center hover:shadow-md transition-shadow"
+                        >
+                          {partner.logo_url ? (
+                            <img
+                              src={partner.logo_url}
+                              alt={partner.name}
+                              className="h-8 w-auto object-contain filter grayscale hover:grayscale-0 transition-all duration-300"
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">{partner.name}</span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                    
+                    <Link 
+                      to="/parceiros" 
+                      className="block text-center py-3 text-primary font-semibold hover:underline mt-2"
+                    >
+                      Ver todos →
+                    </Link>
+                  </div>
+                </AnimatedSection>
+              )}
+            </aside>
           </div>
         </div>
-      </section>
+      </main>
 
-      {/* 3. Quem Somos (Resumo Institucional) */}
+      {/* Quem Somos Section */}
       <section className="py-16 bg-secondary">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -280,321 +443,22 @@ export default function Index() {
         </div>
       </section>
 
-      {/* 4. Nossas Soluções */}
-      <section className="py-16 bg-background">
+      {/* CTA Section */}
+      <section className="py-16 bg-primary">
         <div className="container mx-auto px-4">
-          <AnimatedSection className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-              Nossas Soluções
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Soluções completas em comunicação corporativa para impulsionar sua marca na mídia
-            </p>
-          </AnimatedSection>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
-            {services.map((service, index) => (
-              <ServiceIcon
-                key={service.title}
-                icon={service.icon}
-                title={service.title}
-                description={service.description}
-                index={index}
-              />
-            ))}
-          </div>
-
-          <AnimatedSection className="text-center mt-12">
-            <Button asChild size="lg" variant="outline">
-              <Link to="/solucoes">
-                Ver Todas as Soluções
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </AnimatedSection>
-        </div>
-      </section>
-
-      {/* 5. Quem Atendemos */}
-      <section className="py-16 bg-foreground">
-        <div className="container mx-auto px-4">
-          <AnimatedSection className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-background mb-4">
-              Quem Atendemos
-            </h2>
-            <p className="text-background/70 max-w-2xl mx-auto">
-              Empresas, executivos, instituições e projetos especiais que confiam em nosso trabalho
-            </p>
-          </AnimatedSection>
-
-          {clients.length > 0 ? (
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {clients.map((client, index) => (
-                <motion.a
-                  key={client.id}
-                  href={client.website || '#'}
-                  target={client.website ? '_blank' : undefined}
-                  rel="noopener noreferrer"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  whileHover={{ scale: 1.1 }}
-                  className="aspect-[3/2] bg-background rounded-lg p-4 flex items-center justify-center hover:shadow-lg transition-shadow"
-                >
-                  {client.logo_url ? (
-                    <img
-                      src={client.logo_url}
-                      alt={client.name}
-                      className="max-w-full max-h-full object-contain filter grayscale hover:grayscale-0 transition-all duration-300"
-                    />
-                  ) : (
-                    <span className="text-xs text-muted-foreground text-center">{client.name}</span>
-                  )}
-                </motion.a>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-background/50 mx-auto mb-4" />
-              <p className="text-background/60">Em breve, nossos clientes</p>
-            </div>
-          )}
-
-          <AnimatedSection className="text-center mt-10">
-            <Button asChild variant="outline" className="border-background/30 text-background hover:bg-background/10">
-              <Link to="/clientes">
-                Ver Todos os Clientes
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </AnimatedSection>
-        </div>
-      </section>
-
-      {/* 6. Press Releases Recentes */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-4">
-          <AnimatedSection className="mb-10">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-                  Press Releases Recentes
-                </h2>
-                <p className="text-muted-foreground mt-2">Últimos comunicados de imprensa</p>
-              </div>
-              <Button asChild variant="outline" className="hidden md:flex">
-                <Link to="/press-releases">
-                  Ver todos
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </AnimatedSection>
-
-          {recentReleases.length > 0 ? (
-            <div className="space-y-4">
-              {recentReleases.map((release, index) => (
-                <motion.article
-                  key={release.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                  onClick={() => setSelectedRelease(release)}
-                  className="group flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-md transition-all cursor-pointer"
-                >
-                  <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden">
-                    <img
-                      src={release.image_url || heroBg}
-                      alt={release.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="flex-grow min-w-0">
-                    {release.published_at && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                        <Calendar className="h-3 w-3" />
-                        {format(new Date(release.published_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
-                      </div>
-                    )}
-                    <h3 className="font-display font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                      {release.title}
-                    </h3>
-                  </div>
-                  <Button variant="ghost" size="sm" className="flex-shrink-0">
-                    Ler
-                    <ArrowRight className="ml-1 h-3 w-3" />
-                  </Button>
-                </motion.article>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-secondary rounded-2xl">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Em breve, press releases</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* 7. Clipping - Na Mídia */}
-      <section className="py-16 bg-secondary">
-        <div className="container mx-auto px-4">
-          <AnimatedSection className="mb-10">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-                  Na Mídia
-                </h2>
-                <p className="text-muted-foreground mt-2">Nossos clientes em destaque na imprensa</p>
-              </div>
-              <Button asChild variant="outline" className="hidden md:flex">
-                <Link to="/clipping">
-                  Ver todos
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </AnimatedSection>
-
-          <ClippingGallery items={clippings} />
-
-          <div className="mt-8 text-center md:hidden">
-            <Button asChild variant="outline">
-              <Link to="/clipping">
-                Ver todos
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. Dicas de Comunicação */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-4">
-          <AnimatedSection className="mb-10">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-                  Dicas de Comunicação
-                </h2>
-                <p className="text-muted-foreground mt-2">Artigos e orientações sobre comunicação estratégica</p>
-              </div>
-              <Button asChild variant="outline" className="hidden md:flex">
-                <Link to="/dicas">
-                  Ver todos
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </AnimatedSection>
-
-          {tips.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {tips.map((tip, index) => (
-                <NewsCard
-                  key={tip.id}
-                  title={tip.title}
-                  summary={tip.content.substring(0, 100) + '...'}
-                  imageUrl={tip.image_url || undefined}
-                  date={tip.created_at}
-                  category="Dica"
-                  index={index}
-                  onClick={() => setSelectedTip(tip)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-secondary rounded-2xl">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Em breve, dicas de comunicação</p>
-            </div>
-          )}
-
-          <div className="mt-8 text-center md:hidden">
-            <Button asChild variant="outline">
-              <Link to="/dicas">
-                Ver todos
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* 9. Nossos Parceiros */}
-      {partners.length > 0 && (
-        <section className="py-16 bg-secondary">
-          <div className="container mx-auto px-4">
-            <AnimatedSection className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-                Nossos Parceiros
-              </h2>
-            </AnimatedSection>
-
-            <div className="flex flex-wrap justify-center items-center gap-8">
-              {partners.map((partner, index) => (
-                <motion.a
-                  key={partner.id}
-                  href={partner.website || '#'}
-                  target={partner.website ? '_blank' : undefined}
-                  rel="noopener noreferrer"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  whileHover={{ scale: 1.1 }}
-                  className="h-16 px-6 bg-card rounded-lg flex items-center justify-center hover:shadow-md transition-shadow"
-                >
-                  {partner.logo_url ? (
-                    <img
-                      src={partner.logo_url}
-                      alt={partner.name}
-                      className="h-10 w-auto object-contain filter grayscale hover:grayscale-0 transition-all duration-300"
-                    />
-                  ) : (
-                    <span className="text-sm text-muted-foreground">{partner.name}</span>
-                  )}
-                </motion.a>
-              ))}
-            </div>
-
-            <AnimatedSection className="text-center mt-10">
-              <Button asChild variant="outline">
-                <Link to="/parceiros">
-                  Ver Todos os Parceiros
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </AnimatedSection>
-          </div>
-        </section>
-      )}
-
-      {/* CTA Final */}
-      <section className="py-20 bg-primary relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-background/10 rounded-full blur-3xl" />
-        </div>
-
-        <div className="container mx-auto px-4 relative z-10">
           <AnimatedSection className="text-center">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-primary-foreground mb-6">
-              Pronto para transformar sua comunicação?
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-primary-foreground mb-4">
+              Transforme sua comunicação
             </h2>
-            <p className="text-primary-foreground/80 text-lg max-w-2xl mx-auto mb-10">
+            <p className="text-primary-foreground/80 text-lg max-w-2xl mx-auto mb-8">
               Entre em contato e descubra como podemos ajudar sua empresa a conquistar espaço na mídia.
             </p>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button asChild size="lg" variant="secondary" className="font-semibold">
-                <Link to="/contato">
-                  Fale com a Imprensa
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-            </motion.div>
+            <Button asChild size="lg" variant="secondary" className="font-semibold">
+              <Link to="/contato">
+                Fale com a Imprensa
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
           </AnimatedSection>
         </div>
       </section>
