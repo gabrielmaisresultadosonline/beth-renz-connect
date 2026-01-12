@@ -114,12 +114,8 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
   );
 }
 
-// Process inline formatting like **bold** and *italic*
+// Process inline formatting like **bold**, *italic*, and [links](url)
 function processInlineFormatting(text: string): React.ReactNode {
-  // Process bold: **text**
-  const boldRegex = /\*\*([^*]+)\*\*/g;
-  // Process italic: *text*
-  const italicRegex = /(?<!\*)\*([^*]+)\*(?!\*)/g;
   // Process inline images that might be in the middle of text
   const inlineImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
 
@@ -134,7 +130,7 @@ function processInlineFormatting(text: string): React.ReactNode {
       if (match.index! > lastIndex) {
         parts.push(
           <span key={key++}>
-            {processTextFormatting(text.slice(lastIndex, match.index))}
+            {processLinksAndFormatting(text.slice(lastIndex, match.index))}
           </span>
         );
       }
@@ -145,6 +141,51 @@ function processInlineFormatting(text: string): React.ReactNode {
           alt={match[1] || 'Imagem'}
           className="inline-block max-h-64 rounded my-2"
         />
+      );
+      lastIndex = match.index! + match[0].length;
+    }
+    if (lastIndex < text.length) {
+      parts.push(
+        <span key={key++}>
+          {processLinksAndFormatting(text.slice(lastIndex))}
+        </span>
+      );
+    }
+    return <>{parts}</>;
+  }
+
+  return processLinksAndFormatting(text);
+}
+
+// Process links [text](url) and then text formatting
+function processLinksAndFormatting(text: string): React.ReactNode {
+  // Link regex: [text](url) - but not images which start with !
+  const linkRegex = /(?<!!)\[([^\]]+)\]\(([^)]+)\)/g;
+  
+  let lastIndex = 0;
+  const parts: React.ReactNode[] = [];
+  let key = 0;
+
+  const linkMatches = [...text.matchAll(linkRegex)];
+  if (linkMatches.length > 0) {
+    for (const match of linkMatches) {
+      if (match.index! > lastIndex) {
+        parts.push(
+          <span key={key++}>
+            {processTextFormatting(text.slice(lastIndex, match.index))}
+          </span>
+        );
+      }
+      parts.push(
+        <a
+          key={key++}
+          href={match[2]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
+        >
+          {match[1]}
+        </a>
       );
       lastIndex = match.index! + match[0].length;
     }

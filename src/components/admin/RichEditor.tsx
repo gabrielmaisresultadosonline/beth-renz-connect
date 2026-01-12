@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Image, Video, Upload, Link, Loader2, X, Youtube, Bold, Heading1, Heading2, Smile } from 'lucide-react';
+import { Image, Video, Upload, Link, Loader2, X, Youtube, Bold, Heading1, Heading2, Smile, Link2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface RichEditorProps {
@@ -30,6 +30,9 @@ export function RichEditor({ value, onChange, placeholder = "Escreva seu conteú
   const [urlInput, setUrlInput] = useState('');
   const [videoEmbedUrl, setVideoEmbedUrl] = useState('');
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -95,6 +98,31 @@ export function RichEditor({ value, onChange, placeholder = "Escreva seu conteú
   const insertEmoji = (emoji: string) => {
     insertAtCursor(emoji);
     setEmojiOpen(false);
+  };
+
+  const openLinkDialog = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = value.substring(start, end);
+      setLinkText(selectedText);
+    }
+    setLinkUrl('');
+    setLinkDialogOpen(true);
+  };
+
+  const insertLink = () => {
+    if (!linkUrl.trim()) {
+      toast({ title: 'URL obrigatória', description: 'Digite a URL do link', variant: 'destructive' });
+      return;
+    }
+    
+    const text = linkText.trim() || linkUrl;
+    insertAtCursor(`[${text}](${linkUrl})`);
+    setLinkDialogOpen(false);
+    setLinkUrl('');
+    setLinkText('');
   };
 
   const uploadFile = async (file: File): Promise<string | null> => {
@@ -271,6 +299,41 @@ export function RichEditor({ value, onChange, placeholder = "Escreva seu conteú
             </div>
           </PopoverContent>
         </Popover>
+
+        {/* Link button */}
+        <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+          <DialogTrigger asChild>
+            <Button type="button" variant="ghost" size="sm" onClick={openLinkDialog} title="Inserir Link">
+              <Link2 className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Inserir Link</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Texto do Link</Label>
+                <Input 
+                  value={linkText} 
+                  onChange={(e) => setLinkText(e.target.value)} 
+                  placeholder="Texto que aparecerá no link" 
+                />
+              </div>
+              <div>
+                <Label>URL</Label>
+                <Input 
+                  value={linkUrl} 
+                  onChange={(e) => setLinkUrl(e.target.value)} 
+                  placeholder="https://..." 
+                />
+              </div>
+              <Button onClick={insertLink} className="w-full">
+                Inserir Link
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <div className="w-px h-6 bg-border mx-1 self-center" />
 
