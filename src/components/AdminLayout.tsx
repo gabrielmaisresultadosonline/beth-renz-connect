@@ -17,7 +17,8 @@ import {
   Menu,
   X,
   LayoutDashboard,
-  UserCircle
+  UserCircle,
+  Briefcase
 } from 'lucide-react';
 import { useState } from 'react';
 import logo from '@/assets/logo.png';
@@ -30,6 +31,7 @@ const navItems = [
   { title: 'Dicas', icon: Lightbulb, href: '/admin/dicas' },
   { title: 'Parceiros', icon: Handshake, href: '/admin/parceiros' },
   { title: 'Quem Somos', icon: UserCircle, href: '/admin/equipe' },
+  { title: 'Serviços', icon: Briefcase, href: '/admin/servicos' },
   { title: 'Mensagens', icon: Mail, href: '/admin/mensagens' },
   { title: 'Configurações', icon: Settings, href: '/admin/config' },
 ];
