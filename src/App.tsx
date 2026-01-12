@@ -16,6 +16,13 @@ import Parceiros from "./pages/Parceiros";
 import Contato from "./pages/Contato";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminPressReleases from "./pages/admin/AdminPressReleases";
+import AdminClientes from "./pages/admin/AdminClientes";
+import AdminClipping from "./pages/admin/AdminClipping";
+import AdminDicas from "./pages/admin/AdminDicas";
+import AdminParceiros from "./pages/admin/AdminParceiros";
+import AdminMensagens from "./pages/admin/AdminMensagens";
+import AdminConfig from "./pages/admin/AdminConfig";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +47,13 @@ const App = () => (
             <Route path="/contato" element={<Contato />} />
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/press-releases" element={<AdminPressReleases />} />
+            <Route path="/admin/clientes" element={<AdminClientes />} />
+            <Route path="/admin/clipping" element={<AdminClipping />} />
+            <Route path="/admin/dicas" element={<AdminDicas />} />
+            <Route path="/admin/parceiros" element={<AdminParceiros />} />
+            <Route path="/admin/mensagens" element={<AdminMensagens />} />
+            <Route path="/admin/config" element={<AdminConfig />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

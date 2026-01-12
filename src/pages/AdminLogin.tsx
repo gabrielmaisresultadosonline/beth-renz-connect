@@ -33,19 +33,12 @@ export default function AdminLogin() {
           variant: 'destructive' 
         });
       } else {
-        // Create profile with admin flag
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData.user) {
-          await supabase.from('profiles').insert({
-            user_id: userData.user.id,
-            email: email,
-            is_admin: true
-          });
-        }
+        // Bootstrap first admin using secure database function
+        await supabase.rpc('bootstrap_first_admin', { p_email: email });
         
         toast({ 
           title: 'Conta criada com sucesso!', 
-          description: 'Você já está logado.',
+          description: 'Você já está logado como administrador.',
         });
         navigate('/admin/dashboard');
       }
