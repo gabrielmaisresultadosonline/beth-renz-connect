@@ -1,8 +1,13 @@
+# Beth Renz - Imprensa & Relacionamento
+# https://bethrenz.com.br
+
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 1
 
 User-agent: Bingbot
 Allow: /
+Crawl-delay: 1
 
 User-agent: Twitterbot
 Allow: /
@@ -10,5 +15,20 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 1
+
 User-agent: *
 Allow: /
+Crawl-delay: 2
+
+# Sitemap
+Sitemap: https://bethrenz.com.br/sitemap.xml
+
+# Disallow admin pages from being indexed
+Disallow: /admin
+Disallow: /admin/*
