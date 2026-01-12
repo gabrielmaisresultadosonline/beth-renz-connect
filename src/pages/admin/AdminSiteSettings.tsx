@@ -12,6 +12,7 @@ import { Save, Image, Share2, BarChart3, Upload, Loader2 } from 'lucide-react';
 
 interface SiteSettings {
   logo_url?: string;
+  favicon_url?: string;
   linkedin_url?: string;
   instagram_url?: string;
   facebook_url?: string;
@@ -27,7 +28,8 @@ export default function AdminSiteSettings() {
   const [settings, setSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -80,16 +82,19 @@ export default function AdminSiteSettings() {
     }
   };
 
-  const uploadLogo = async (file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'Arquivo muito grande', description: 'Máximo 5MB', variant: 'destructive' });
+  const uploadFile = async (file: File, type: 'logo' | 'favicon') => {
+    const maxSize = type === 'favicon' ? 1 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({ title: 'Arquivo muito grande', description: `Máximo ${type === 'favicon' ? '1MB' : '5MB'}`, variant: 'destructive' });
       return;
     }
 
-    setUploading(true);
+    if (type === 'logo') setUploadingLogo(true);
+    else setUploadingFavicon(true);
+
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const fileName = `${type}-${Date.now()}.${fileExt}`;
       const filePath = `branding/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -102,13 +107,32 @@ export default function AdminSiteSettings() {
         .from('media')
         .getPublicUrl(filePath);
 
-      updateSetting('logo_url', publicUrl);
-      toast({ title: 'Logo enviada!' });
+      if (type === 'logo') {
+        updateSetting('logo_url', publicUrl);
+        toast({ title: 'Logo enviada!' });
+      } else {
+        updateSetting('favicon_url', publicUrl);
+        toast({ title: 'Favicon enviado!' });
+        // Update favicon in the page
+        updateFaviconInPage(publicUrl);
+      }
     } catch (error: any) {
       toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
     } finally {
-      setUploading(false);
+      if (type === 'logo') setUploadingLogo(false);
+      else setUploadingFavicon(false);
     }
+  };
+
+  const updateFaviconInPage = (url: string) => {
+    // Update favicon dynamically
+    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = url;
   };
 
   if (loading) {
@@ -151,9 +175,10 @@ export default function AdminSiteSettings() {
                 Faça upload da logomarca e configure a identidade do site
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-8">
+              {/* Logo Section */}
               <div className="space-y-4">
-                <Label>Logomarca</Label>
+                <Label className="text-base font-semibold">Logomarca</Label>
                 <div className="flex items-start gap-6">
                   <div className="w-48 h-24 bg-secondary rounded-lg flex items-center justify-center border-2 border-dashed border-border overflow-hidden">
                     {settings.logo_url ? (
@@ -170,15 +195,15 @@ export default function AdminSiteSettings() {
                       id="logo-upload"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) uploadLogo(file);
+                        if (file) uploadFile(file, 'logo');
                       }}
                     />
                     <Button
                       variant="outline"
                       onClick={() => document.getElementById('logo-upload')?.click()}
-                      disabled={uploading}
+                      disabled={uploadingLogo}
                     >
-                      {uploading ? (
+                      {uploadingLogo ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <Upload className="h-4 w-4 mr-2" />
@@ -191,15 +216,69 @@ export default function AdminSiteSettings() {
                     </p>
                   </div>
                 </div>
+                <div>
+                  <Label className="text-sm">URL da Logo (alternativa)</Label>
+                  <Input
+                    value={settings.logo_url || ''}
+                    onChange={(e) => updateSetting('logo_url', e.target.value)}
+                    placeholder="https://..."
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label>URL da Logo (alternativa)</Label>
-                <Input
-                  value={settings.logo_url || ''}
-                  onChange={(e) => updateSetting('logo_url', e.target.value)}
-                  placeholder="https://..."
-                />
+              <div className="border-t pt-6" />
+
+              {/* Favicon Section */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Favicon</Label>
+                <p className="text-sm text-muted-foreground -mt-2">
+                  Ícone que aparece na aba do navegador
+                </p>
+                <div className="flex items-start gap-6">
+                  <div className="w-20 h-20 bg-secondary rounded-lg flex items-center justify-center border-2 border-dashed border-border overflow-hidden">
+                    {settings.favicon_url ? (
+                      <img src={settings.favicon_url} alt="Favicon" className="w-12 h-12 object-contain" />
+                    ) : (
+                      <span className="text-xs text-muted-foreground text-center">Sem<br/>favicon</span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/png,image/x-icon,image/svg+xml,.ico"
+                      className="hidden"
+                      id="favicon-upload"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadFile(file, 'favicon');
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('favicon-upload')?.click()}
+                      disabled={uploadingFavicon}
+                    >
+                      {uploadingFavicon ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      Enviar Favicon
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      ICO, PNG ou SVG. Máx 1MB.<br />
+                      Tamanho ideal: 32x32 ou 64x64 pixels
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm">URL do Favicon (alternativa)</Label>
+                  <Input
+                    value={settings.favicon_url || ''}
+                    onChange={(e) => updateSetting('favicon_url', e.target.value)}
+                    placeholder="https://..."
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

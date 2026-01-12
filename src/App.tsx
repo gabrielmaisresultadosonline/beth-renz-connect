@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth";
+import { useDynamicFavicon } from "@/hooks/use-dynamic-favicon";
 import Index from "./pages/Index";
 import QuemSomos from "./pages/QuemSomos";
 import Solucoes from "./pages/Solucoes";
@@ -32,6 +33,40 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function AppContent() {
+  useDynamicFavicon();
+  
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/quem-somos" element={<QuemSomos />} />
+      <Route path="/solucoes" element={<Solucoes />} />
+      <Route path="/clientes" element={<Clientes />} />
+      <Route path="/press-releases" element={<PressReleases />} />
+      <Route path="/press-releases/:id" element={<PressReleaseDetail />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/clipping" element={<Clipping />} />
+      <Route path="/dicas" element={<Dicas />} />
+      <Route path="/parceiros" element={<Parceiros />} />
+      <Route path="/contato" element={<Contato />} />
+      <Route path="/admin" element={<AdminLogin />} />
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route path="/admin/press-releases" element={<AdminPressReleases />} />
+      <Route path="/admin/clientes" element={<AdminClientes />} />
+      <Route path="/admin/clipping" element={<AdminClipping />} />
+      <Route path="/admin/dicas" element={<AdminDicas />} />
+      <Route path="/admin/parceiros" element={<AdminParceiros />} />
+      <Route path="/admin/mensagens" element={<AdminMensagens />} />
+      <Route path="/admin/config" element={<AdminConfig />} />
+      <Route path="/admin/equipe" element={<AdminEquipe />} />
+      <Route path="/admin/servicos" element={<AdminServicos />} />
+      <Route path="/admin/site-settings" element={<AdminSiteSettings />} />
+      <Route path="/admin/homepage" element={<AdminHomepage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -39,33 +74,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/quem-somos" element={<QuemSomos />} />
-            <Route path="/solucoes" element={<Solucoes />} />
-            <Route path="/clientes" element={<Clientes />} />
-            <Route path="/press-releases" element={<PressReleases />} />
-            <Route path="/press-releases/:id" element={<PressReleaseDetail />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/clipping" element={<Clipping />} />
-            <Route path="/dicas" element={<Dicas />} />
-            <Route path="/parceiros" element={<Parceiros />} />
-            <Route path="/contato" element={<Contato />} />
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/press-releases" element={<AdminPressReleases />} />
-            <Route path="/admin/clientes" element={<AdminClientes />} />
-            <Route path="/admin/clipping" element={<AdminClipping />} />
-            <Route path="/admin/dicas" element={<AdminDicas />} />
-            <Route path="/admin/parceiros" element={<AdminParceiros />} />
-            <Route path="/admin/mensagens" element={<AdminMensagens />} />
-            <Route path="/admin/config" element={<AdminConfig />} />
-            <Route path="/admin/equipe" element={<AdminEquipe />} />
-            <Route path="/admin/servicos" element={<AdminServicos />} />
-            <Route path="/admin/site-settings" element={<AdminSiteSettings />} />
-            <Route path="/admin/homepage" element={<AdminHomepage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppContent />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
