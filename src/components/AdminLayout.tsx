@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/auth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { 
   Newspaper, 
@@ -41,14 +42,35 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [verifyingAdmin, setVerifyingAdmin] = useState(true);
 
+  useEffect(() => {
+    const verifyAdminAccess = async () => {
+      if (!loading && user) {
+        // Server-side verification using RPC
+        const { data: isAdminVerified, error } = await supabase.rpc('is_current_user_admin');
+        
+        if (error || !isAdminVerified) {
+          navigate('/admin');
+          return;
+        }
+        setVerifyingAdmin(false);
+      } else if (!loading && !user) {
+        navigate('/admin');
+      }
+    };
+
+    verifyAdminAccess();
+  }, [user, loading, navigate]);
+
+  // Client-side check as fallback
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
       navigate('/admin');
     }
   }, [user, isAdmin, loading, navigate]);
 
-  if (loading) {
+  if (loading || verifyingAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-secondary">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

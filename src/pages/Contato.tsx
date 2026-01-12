@@ -17,13 +17,48 @@ export default function Contato() {
   const [sent, setSent] = useState(false);
   const { toast } = useToast();
 
+  const validateForm = (): boolean => {
+    // Name validation
+    if (form.name.length < 2 || form.name.length > 200) {
+      toast({ title: 'Erro', description: 'Nome deve ter entre 2 e 200 caracteres.', variant: 'destructive' });
+      return false;
+    }
+
+    // Email validation
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!emailRegex.test(form.email) || form.email.length > 320) {
+      toast({ title: 'Erro', description: 'Por favor, insira um email válido.', variant: 'destructive' });
+      return false;
+    }
+
+    // Phone validation (optional but if provided must be valid)
+    if (form.phone && form.phone.length > 0) {
+      const phoneRegex = /^[0-9\s\(\)\+\-]{7,20}$/;
+      if (!phoneRegex.test(form.phone)) {
+        toast({ title: 'Erro', description: 'Telefone deve conter apenas números e ter entre 7 e 20 caracteres.', variant: 'destructive' });
+        return false;
+      }
+    }
+
+    // Message validation
+    if (form.message.length < 10 || form.message.length > 5000) {
+      toast({ title: 'Erro', description: 'Mensagem deve ter entre 10 e 5000 caracteres.', variant: 'destructive' });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
+    
     setLoading(true);
     const { error } = await supabase.from('contact_messages').insert([form]);
     setLoading(false);
     if (error) {
-      toast({ title: 'Erro', description: 'Não foi possível enviar sua mensagem.', variant: 'destructive' });
+      toast({ title: 'Erro', description: 'Não foi possível enviar sua mensagem. Verifique os dados e tente novamente.', variant: 'destructive' });
     } else {
       setSent(true);
       toast({ title: 'Mensagem enviada!', description: 'Entraremos em contato em breve.' });
@@ -148,6 +183,8 @@ export default function Contato() {
                           value={form.name}
                           onChange={(e) => setForm({ ...form, name: e.target.value })}
                           required
+                          minLength={2}
+                          maxLength={200}
                           className="h-12 bg-secondary border-0"
                         />
                       </div>
@@ -158,26 +195,34 @@ export default function Contato() {
                           value={form.email}
                           onChange={(e) => setForm({ ...form, email: e.target.value })}
                           required
+                          maxLength={320}
                           className="h-12 bg-secondary border-0"
                         />
                       </div>
                       <div>
                         <Input
+                          type="tel"
                           placeholder="Telefone (opcional)"
                           value={form.phone}
                           onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                          maxLength={20}
                           className="h-12 bg-secondary border-0"
                         />
                       </div>
                       <div>
                         <Textarea
-                          placeholder="Sua mensagem"
+                          placeholder="Sua mensagem (mínimo 10 caracteres)"
                           rows={5}
                           value={form.message}
                           onChange={(e) => setForm({ ...form, message: e.target.value })}
                           required
+                          minLength={10}
+                          maxLength={5000}
                           className="bg-secondary border-0 resize-none"
                         />
+                        <p className="text-xs text-muted-foreground mt-1 text-right">
+                          {form.message.length}/5000
+                        </p>
                       </div>
                       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                         <Button type="submit" className="w-full h-12 shine" disabled={loading}>
