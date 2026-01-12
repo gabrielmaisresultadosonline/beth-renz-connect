@@ -63,13 +63,54 @@ export default function Contato() {
     if (!validateForm()) return;
     
     setLoading(true);
-    const { error } = await supabase.from('contact_messages').insert([form]);
-    setLoading(false);
-    if (error) {
-      toast({ title: 'Erro', description: 'Não foi possível enviar sua mensagem. Verifique os dados e tente novamente.', variant: 'destructive' });
-    } else {
-      setSent(true);
-      toast({ title: 'Mensagem enviada!', description: 'Entraremos em contato em breve.' });
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-contact`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            name: form.name,
+            email: form.email,
+            phone: form.phone || null,
+            message: form.message,
+            honeypot,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast({
+            title: 'Limite atingido',
+            description: data.error || 'Muitas tentativas. Aguarde antes de tentar novamente.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Erro',
+            description: data.error || 'Não foi possível enviar sua mensagem.',
+            variant: 'destructive',
+          });
+        }
+      } else {
+        setSent(true);
+        toast({ title: 'Mensagem enviada!', description: 'Entraremos em contato em breve.' });
+      }
+    } catch {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível enviar sua mensagem. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
