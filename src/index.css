@@ -9,6 +9,11 @@
    Primary color: Purple/Magenta from the logo
 */
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 @layer base {
   :root {
     /* Brand colors - Purple/Magenta theme from logo */
