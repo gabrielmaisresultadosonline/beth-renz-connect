@@ -58,6 +58,27 @@ interface SiteContent {
   metadata: any;
 }
 
+interface Clipping {
+  id: string;
+  title: string;
+  source: string | null;
+  link: string | null;
+}
+
+interface SearchResult {
+  id: string;
+  title: string;
+  type: 'release' | 'tip' | 'clipping';
+  link: string;
+}
+
+interface SectionVisibility {
+  sidebar_search: boolean;
+  sidebar_blog: boolean;
+  sidebar_clients: boolean;
+  sidebar_partners: boolean;
+}
+
 export default function Index() {
   const [releases, setReleases] = useState<PressRelease[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -67,6 +88,15 @@ export default function Index() {
   const [selectedRelease, setSelectedRelease] = useState<PressRelease | null>(null);
   const [selectedTip, setSelectedTip] = useState<Tip | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>({
+    sidebar_search: true,
+    sidebar_blog: true,
+    sidebar_clients: true,
+    sidebar_partners: true,
+  });
 
   useEffect(() => {
     async function fetchData() {
@@ -75,13 +105,15 @@ export default function Index() {
         clientsData, 
         tipsData, 
         partnersData,
-        contentData
+        contentData,
+        sectionsData
       ] = await Promise.all([
         supabase.from('press_releases').select('*').eq('published', true).order('published_at', { ascending: false }).limit(20),
         supabase.from('clients').select('*').eq('active', true).order('display_order', { ascending: true }).limit(12),
         supabase.from('tips').select('*').eq('published', true).order('created_at', { ascending: false }).limit(4),
         supabase.from('partners').select('*').eq('active', true).order('display_order', { ascending: true }),
         supabase.from('site_content').select('*'),
+        supabase.from('homepage_sections').select('section_key, visible'),
       ]);
 
       setReleases(releasesData.data || []);
@@ -94,10 +126,72 @@ export default function Index() {
         contentMap[item.section] = item;
       });
       setContent(contentMap);
+
+      // Set section visibility
+      if (sectionsData.data) {
+        const visibility: SectionVisibility = {
+          sidebar_search: true,
+          sidebar_blog: true,
+          sidebar_clients: true,
+          sidebar_partners: true,
+        };
+        sectionsData.data.forEach((section: { section_key: string; visible: boolean | null }) => {
+          if (section.section_key in visibility) {
+            visibility[section.section_key as keyof SectionVisibility] = section.visible ?? true;
+          }
+        });
+        setSectionVisibility(visibility);
+      }
     }
 
     fetchData();
   }, []);
+
+  // Search functionality
+  useEffect(() => {
+    const searchTimeout = setTimeout(async () => {
+      if (searchQuery.trim().length < 2) {
+        setSearchResults([]);
+        setShowSearchResults(false);
+        return;
+      }
+
+      setIsSearching(true);
+      const searchTerm = `%${searchQuery}%`;
+
+      const [releasesRes, tipsRes, clippingRes] = await Promise.all([
+        supabase
+          .from('press_releases')
+          .select('id, title')
+          .eq('published', true)
+          .ilike('title', searchTerm)
+          .limit(5),
+        supabase
+          .from('tips')
+          .select('id, title')
+          .eq('published', true)
+          .ilike('title', searchTerm)
+          .limit(5),
+        supabase
+          .from('clipping')
+          .select('id, title')
+          .ilike('title', searchTerm)
+          .limit(5),
+      ]);
+
+      const results: SearchResult[] = [
+        ...(releasesRes.data || []).map(r => ({ id: r.id, title: r.title, type: 'release' as const, link: `/press-releases/${r.id}` })),
+        ...(tipsRes.data || []).map(t => ({ id: t.id, title: t.title, type: 'tip' as const, link: `/dicas` })),
+        ...(clippingRes.data || []).map(c => ({ id: c.id, title: c.title, type: 'clipping' as const, link: `/clipping` })),
+      ];
+
+      setSearchResults(results);
+      setShowSearchResults(true);
+      setIsSearching(false);
+    }, 300);
+
+    return () => clearTimeout(searchTimeout);
+  }, [searchQuery]);
 
   const featuredRelease = releases[0];
   const otherReleases = releases.slice(1, 6);
@@ -231,121 +325,174 @@ export default function Index() {
             <aside className="space-y-8">
               
               {/* Search Box */}
-              <AnimatedSection>
-                <div className="relative">
-                  <Input
-                    type="search"
-                    placeholder="Pesquisar ..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3 bg-secondary border-0"
-                  />
-                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                </div>
-              </AnimatedSection>
-
-              {/* Blog da Beth Section */}
-              <AnimatedSection delay={0.1}>
-                <div className="bg-primary text-primary-foreground px-6 py-4 font-display font-bold text-lg uppercase tracking-wide">
-                  Blog da Beth
-                </div>
-                
-                {sidebarTip ? (
-                  <article 
-                    className="bg-card border border-border border-t-0 p-4 cursor-pointer group"
-                    onClick={() => setSelectedTip(sidebarTip)}
-                  >
-                    {sidebarTip.image_url && (
-                      <div className="aspect-[16/10] rounded overflow-hidden mb-4">
-                        <img
-                          src={sidebarTip.image_url}
-                          alt={sidebarTip.title}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
+              {sectionVisibility.sidebar_search && (
+                <AnimatedSection>
+                  <div className="relative">
+                    <Input
+                      type="search"
+                      placeholder="Pesquisar ..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+                      className="w-full pl-4 pr-10 py-3 bg-secondary border-0"
+                    />
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    
+                    {/* Search Results Dropdown */}
+                    {showSearchResults && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                        {isSearching ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            Pesquisando...
+                          </div>
+                        ) : searchResults.length > 0 ? (
+                          <div className="py-2">
+                            {searchResults.map((result) => (
+                              <Link
+                                key={`${result.type}-${result.id}`}
+                                to={result.link}
+                                onClick={() => {
+                                  setShowSearchResults(false);
+                                  setSearchQuery('');
+                                }}
+                                className="block px-4 py-3 hover:bg-secondary transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold uppercase text-primary">
+                                    {result.type === 'release' ? 'Press Release' : result.type === 'tip' ? 'Blog' : 'Clipping'}
+                                  </span>
+                                </div>
+                                <p className="text-sm font-medium text-foreground line-clamp-2">
+                                  {result.title}
+                                </p>
+                              </Link>
+                            ))}
+                          </div>
+                        ) : searchQuery.length >= 2 ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            Nenhum resultado encontrado para "{searchQuery}"
+                          </div>
+                        ) : null}
                       </div>
                     )}
-                    
-                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide mb-2">
-                      <span className="text-primary font-bold">BLOG DA BETH</span>
-                      <span className="text-muted-foreground">
-                        {format(new Date(sidebarTip.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                      </span>
-                    </div>
-                    
-                    <h3 className="text-xl font-display font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
-                      {sidebarTip.title}
-                    </h3>
-                    
-                    <p className="text-muted-foreground text-sm mb-4 line-clamp-4">
-                      {sidebarTip.content.substring(0, 200)}...
-                    </p>
-                    
-                    <Button size="sm" className="bg-primary hover:bg-primary/90">
-                      LEIA MAIS
-                    </Button>
-                  </article>
-                ) : (
-                  <div className="bg-card border border-border border-t-0 p-6 text-center">
-                    <p className="text-muted-foreground text-sm">
-                      Em breve, dicas de comunicação
-                    </p>
                   </div>
-                )}
+                  
+                  {/* Click outside to close */}
+                  {showSearchResults && (
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowSearchResults(false)}
+                    />
+                  )}
+                </AnimatedSection>
+              )}
 
-                <Link 
-                  to="/dicas" 
-                  className="block text-center py-3 text-primary font-semibold hover:underline"
-                >
-                  Ver todos os artigos →
-                </Link>
-              </AnimatedSection>
+              {/* Blog da Beth Section */}
+              {sectionVisibility.sidebar_blog && (
+                <AnimatedSection delay={0.1}>
+                  <div className="bg-primary text-primary-foreground px-6 py-4 font-display font-bold text-lg uppercase tracking-wide">
+                    Blog da Beth
+                  </div>
+                  
+                  {sidebarTip ? (
+                    <article 
+                      className="bg-card border border-border border-t-0 p-4 cursor-pointer group"
+                      onClick={() => setSelectedTip(sidebarTip)}
+                    >
+                      {sidebarTip.image_url && (
+                        <div className="aspect-[16/10] rounded overflow-hidden mb-4">
+                          <img
+                            src={sidebarTip.image_url}
+                            alt={sidebarTip.title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide mb-2">
+                        <span className="text-primary font-bold">BLOG DA BETH</span>
+                        <span className="text-muted-foreground">
+                          {format(new Date(sidebarTip.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                        </span>
+                      </div>
+                      
+                      <h3 className="text-xl font-display font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
+                        {sidebarTip.title}
+                      </h3>
+                      
+                      <p className="text-muted-foreground text-sm mb-4 line-clamp-4">
+                        {sidebarTip.content.substring(0, 200)}...
+                      </p>
+                      
+                      <Button size="sm" className="bg-primary hover:bg-primary/90">
+                        LEIA MAIS
+                      </Button>
+                    </article>
+                  ) : (
+                    <div className="bg-card border border-border border-t-0 p-6 text-center">
+                      <p className="text-muted-foreground text-sm">
+                        Em breve, dicas de comunicação
+                      </p>
+                    </div>
+                  )}
+
+                  <Link 
+                    to="/dicas" 
+                    className="block text-center py-3 text-primary font-semibold hover:underline"
+                  >
+                    Ver todos os artigos →
+                  </Link>
+                </AnimatedSection>
+              )}
 
               {/* Quem Atendemos */}
-              <AnimatedSection delay={0.2}>
-                <div className="bg-foreground text-background px-6 py-4 font-display font-bold text-lg uppercase tracking-wide">
-                  Quem Atendemos
-                </div>
-                
-                <div className="bg-card border border-border border-t-0 p-4">
-                  {clients.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-3">
-                      {clients.slice(0, 6).map((client) => (
-                        <a
-                          key={client.id}
-                          href={client.website || '#'}
-                          target={client.website ? '_blank' : undefined}
-                          rel="noopener noreferrer"
-                          className="aspect-[3/2] bg-secondary rounded p-2 flex items-center justify-center hover:shadow-md transition-shadow"
-                        >
-                          {client.logo_url ? (
-                            <img
-                              src={client.logo_url}
-                              alt={client.name}
-                              className="max-w-full max-h-full object-contain filter grayscale hover:grayscale-0 transition-all duration-300"
-                            />
-                          ) : (
-                            <span className="text-xs text-muted-foreground text-center">{client.name}</span>
-                          )}
-                        </a>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-sm text-center py-4">
-                      Em breve, nossos clientes
-                    </p>
-                  )}
+              {sectionVisibility.sidebar_clients && (
+                <AnimatedSection delay={0.2}>
+                  <div className="bg-foreground text-background px-6 py-4 font-display font-bold text-lg uppercase tracking-wide">
+                    Quem Atendemos
+                  </div>
                   
-                  <Link 
-                    to="/clientes" 
-                    className="block text-center py-3 text-primary font-semibold hover:underline mt-2"
-                  >
-                    Ver todos →
-                  </Link>
-                </div>
-              </AnimatedSection>
+                  <div className="bg-card border border-border border-t-0 p-4">
+                    {clients.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-3">
+                        {clients.slice(0, 6).map((client) => (
+                          <a
+                            key={client.id}
+                            href={client.website || '#'}
+                            target={client.website ? '_blank' : undefined}
+                            rel="noopener noreferrer"
+                            className="aspect-[3/2] bg-secondary rounded p-2 flex items-center justify-center hover:shadow-md transition-shadow"
+                          >
+                            {client.logo_url ? (
+                              <img
+                                src={client.logo_url}
+                                alt={client.name}
+                                className="max-w-full max-h-full object-contain filter grayscale hover:grayscale-0 transition-all duration-300"
+                              />
+                            ) : (
+                              <span className="text-xs text-muted-foreground text-center">{client.name}</span>
+                            )}
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm text-center py-4">
+                        Em breve, nossos clientes
+                      </p>
+                    )}
+                    
+                    <Link 
+                      to="/clientes" 
+                      className="block text-center py-3 text-primary font-semibold hover:underline mt-2"
+                    >
+                      Ver todos →
+                    </Link>
+                  </div>
+                </AnimatedSection>
+              )}
 
               {/* Parceiros */}
-              {partners.length > 0 && (
+              {sectionVisibility.sidebar_partners && partners.length > 0 && (
                 <AnimatedSection delay={0.3}>
                   <div className="bg-secondary px-6 py-4 font-display font-bold text-lg uppercase tracking-wide text-foreground">
                     Parceiros

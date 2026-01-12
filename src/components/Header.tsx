@@ -3,7 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import logo from '@/assets/logo.png';
+import { supabase } from '@/integrations/supabase/client';
+import defaultLogo from '@/assets/logo.png';
 
 const navItems = [
   { label: 'Quem Somos', href: '/quem-somos' },
@@ -16,15 +17,54 @@ const navItems = [
   { label: 'Contato', href: '/contato' },
 ];
 
+interface SiteSettings {
+  logo_url?: string;
+  favicon_url?: string;
+  site_name?: string;
+}
+
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showCta, setShowCta] = useState(true);
+  const [logoUrl, setLogoUrl] = useState<string>(defaultLogo);
   const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      // Fetch header_cta visibility
+      const { data: ctaData } = await supabase
+        .from('homepage_sections')
+        .select('visible')
+        .eq('section_key', 'header_cta')
+        .maybeSingle();
+      
+      if (ctaData) {
+        setShowCta(ctaData.visible ?? true);
+      }
+
+      // Fetch logo from site settings
+      const { data: settingsData } = await supabase
+        .from('site_content')
+        .select('metadata')
+        .eq('section', 'settings')
+        .maybeSingle();
+
+      if (settingsData?.metadata) {
+        const settings = settingsData.metadata as SiteSettings;
+        if (settings.logo_url) {
+          setLogoUrl(settings.logo_url);
+        }
+      }
+    }
+
+    fetchSettings();
   }, []);
 
   return (
@@ -42,7 +82,7 @@ export function Header() {
         <div className="flex items-center justify-between h-20">
           <Link to="/" className="relative group flex-shrink-0">
             <motion.img 
-              src={logo} 
+              src={logoUrl} 
               alt="Beth Renz" 
               className="h-14 w-auto transition-all duration-300 group-hover:scale-105"
               whileHover={{ scale: 1.05 }}
@@ -76,11 +116,13 @@ export function Header() {
           </nav>
 
           {/* CTA Button */}
-          <div className="hidden xl:block">
-            <Button asChild className="shine font-semibold">
-              <Link to="/contato">Fale com a Imprensa</Link>
-            </Button>
-          </div>
+          {showCta && (
+            <div className="hidden xl:block">
+              <Button asChild className="shine font-semibold">
+                <Link to="/contato">Fale com a Imprensa</Link>
+              </Button>
+            </div>
+          )}
 
           {/* Mobile Menu Button */}
           <Button
@@ -146,18 +188,20 @@ export function Header() {
                     </Link>
                   </motion.div>
                 ))}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: navItems.length * 0.05 }}
-                  className="px-4 pt-4"
-                >
-                  <Button asChild className="w-full shine font-semibold">
-                    <Link to="/contato" onClick={() => setIsMenuOpen(false)}>
-                      Fale com a Imprensa
-                    </Link>
-                  </Button>
-                </motion.div>
+                {showCta && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: navItems.length * 0.05 }}
+                    className="px-4 pt-4"
+                  >
+                    <Button asChild className="w-full shine font-semibold">
+                      <Link to="/contato" onClick={() => setIsMenuOpen(false)}>
+                        Fale com a Imprensa
+                      </Link>
+                    </Button>
+                  </motion.div>
+                )}
               </div>
             </motion.nav>
           )}
