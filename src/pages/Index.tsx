@@ -116,9 +116,9 @@ export default function Index() {
               {/* Featured Article */}
               {featuredRelease ? (
                 <AnimatedSection>
-                  <article 
-                    className="group cursor-pointer"
-                    onClick={() => setSelectedRelease(featuredRelease)}
+                  <Link 
+                    to={`/press-releases/${featuredRelease.id}`}
+                    className="group block"
                   >
                     <div className="relative aspect-[16/9] rounded-lg overflow-hidden mb-4">
                       <img
@@ -155,7 +155,7 @@ export default function Index() {
                     <Button className="bg-primary hover:bg-primary/90">
                       LEIA MAIS
                     </Button>
-                  </article>
+                  </Link>
                 </AnimatedSection>
               ) : (
                 <div className="text-center py-20 bg-secondary rounded-xl">
@@ -174,9 +174,10 @@ export default function Index() {
                 <div className="space-y-6 border-t border-border pt-8">
                   {otherReleases.map((release, index) => (
                     <AnimatedSection key={release.id} delay={index * 0.1}>
-                      <article 
-                        className="group flex gap-4 cursor-pointer"
-                        onClick={() => setSelectedRelease(release)}
+                      <Link 
+                        to={`/press-releases/${release.id}`}
+                        className="group flex gap-4"
+                      >
                       >
                         <div className="flex-shrink-0 w-32 h-24 md:w-48 md:h-32 rounded-lg overflow-hidden">
                           <img
@@ -208,7 +209,7 @@ export default function Index() {
                             </p>
                           )}
                         </div>
-                      </article>
+                      </Link>
                     </AnimatedSection>
                   ))}
                 </div>
@@ -463,60 +464,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Modal for Press Release */}
-      <AnimatePresence>
-        {selectedRelease && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedRelease(null)}
-            className="fixed inset-0 bg-foreground/95 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
-          >
-            <motion.article
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-3xl bg-card rounded-2xl overflow-hidden my-8"
-            >
-              <button
-                onClick={() => setSelectedRelease(null)}
-                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-              {selectedRelease.image_url && (
-                <div className="aspect-video">
-                  <img
-                    src={selectedRelease.image_url}
-                    alt={selectedRelease.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-
-              <div className="p-8">
-                {selectedRelease.published_at && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                    <Calendar className="h-4 w-4" />
-                    {format(new Date(selectedRelease.published_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                  </div>
-                )}
-                <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-4">
-                  {selectedRelease.title}
-                </h2>
-                <div className="prose prose-lg max-w-none text-muted-foreground">
-                  {selectedRelease.content.split('\n').map((paragraph, i) => (
-                    <p key={i}>{paragraph}</p>
-                  ))}
-                </div>
-              </div>
-            </motion.article>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Modal for Tip */}
       <AnimatePresence>
