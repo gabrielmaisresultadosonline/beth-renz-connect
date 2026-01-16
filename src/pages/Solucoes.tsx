@@ -117,10 +117,10 @@ export default function Solucoes() {
                 return (
                   <AnimatedSection key={service.id} delay={index * 0.1}>
                     <div
-                      className={`flex flex-col lg:flex-row gap-8 items-stretch ${!isEven ? 'lg:flex-row-reverse' : ''}`}
+                      className={`flex flex-col lg:flex-row items-stretch ${!isEven ? 'lg:flex-row-reverse' : ''}`}
                     >
                       {/* Image/Icon Card */}
-                      <motion.div className="w-full lg:w-80 flex-shrink-0" whileHover={{ scale: 1.02 }}>
+                      <motion.div className="w-full lg:w-80 flex-shrink-0 relative z-10" whileHover={{ scale: 1.02 }}>
                         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 overflow-hidden">
                           {hasImage ? (
                             <div className="relative">
@@ -155,8 +155,26 @@ export default function Solucoes() {
                         </Card>
                       </motion.div>
 
+                      {/* Connector Line */}
+                      <div className="hidden lg:flex items-center justify-center relative">
+                        <div 
+                          className={`w-12 h-1 bg-gradient-to-r from-primary via-primary/80 to-primary rounded-full shadow-lg shadow-primary/30`}
+                        />
+                        {/* Decorative circles at ends */}
+                        <div className={`absolute ${isEven ? 'left-0' : 'right-0'} w-3 h-3 bg-primary rounded-full shadow-lg shadow-primary/50`} />
+                        <div className={`absolute ${isEven ? 'right-0' : 'left-0'} w-3 h-3 bg-primary rounded-full shadow-lg shadow-primary/50`} />
+                      </div>
+
+                      {/* Mobile Connector Line */}
+                      <div className="flex lg:hidden items-center justify-center py-4">
+                        <div className="h-12 w-1 bg-gradient-to-b from-primary via-primary/80 to-primary rounded-full shadow-lg shadow-primary/30 relative">
+                          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary rounded-full shadow-lg shadow-primary/50" />
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary rounded-full shadow-lg shadow-primary/50" />
+                        </div>
+                      </div>
+
                       {/* Content */}
-                      <div className="w-full lg:w-2/3">
+                      <div className="w-full lg:flex-1 relative z-10">
                         <Card className="bg-card border-border h-full">
                           <CardContent className="p-8">
                             {!hasImage && (
