@@ -118,19 +118,20 @@ export default function Solucoes() {
                   <AnimatedSection key={service.id} delay={index * 0.1}>
                     {/* Single unified container with continuous border */}
                     <div className="rounded-2xl border-4 border-primary bg-card shadow-lg overflow-hidden">
-                      {/* Image Section */}
-                      <motion.div 
-                        className="w-full flex justify-center bg-gradient-to-br from-primary/10 to-primary/5 border-b-4 border-primary"
-                        whileHover={{ scale: 1.01 }}
-                      >
-                        <div className="w-full max-w-md">
+                      {/* Flex container - vertical on mobile, horizontal on desktop */}
+                      <div className={`flex flex-col lg:flex-row ${!isEven ? 'lg:flex-row-reverse' : ''}`}>
+                        {/* Image Section - larger on desktop */}
+                        <motion.div 
+                          className="w-full lg:w-2/5 flex-shrink-0 bg-gradient-to-br from-primary/10 to-primary/5"
+                          whileHover={{ scale: 1.01 }}
+                        >
                           {hasImage ? (
-                            <div className="relative">
-                              <div className="aspect-[4/3] w-full">
+                            <div className="relative h-full">
+                              <div className="aspect-[4/3] lg:aspect-auto lg:h-full w-full">
                                 <img 
                                   src={service.image_url!} 
                                   alt={service.title}
-                                  className="w-full h-full object-contain bg-muted/30"
+                                  className="w-full h-full object-cover bg-muted/30"
                                 />
                               </div>
                               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4">
@@ -143,7 +144,7 @@ export default function Solucoes() {
                               </div>
                             </div>
                           ) : (
-                            <div className="p-8 text-center flex flex-col items-center justify-center">
+                            <div className="p-8 text-center h-full flex flex-col items-center justify-center min-h-[200px] lg:min-h-[300px]">
                               <motion.div
                                 whileHover={{ rotate: 360 }}
                                 transition={{ duration: 0.6 }}
@@ -154,78 +155,78 @@ export default function Solucoes() {
                               <h2 className="text-xl font-display font-bold text-foreground">{service.title}</h2>
                             </div>
                           )}
+                        </motion.div>
+
+                        {/* Content Section */}
+                        <div className="w-full lg:w-3/5 p-6 md:p-8 flex flex-col justify-center">
+                          <p className="text-muted-foreground text-lg mb-6 leading-relaxed">
+                            {service.description}
+                          </p>
+
+                          {service.how_we_do && (
+                            <h3 className="font-semibold text-primary mb-4">{service.how_we_do}</h3>
+                          )}
+
+                          {features.length > 0 && (
+                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                              {features.map((feature, i) => (
+                                <motion.li
+                                  key={i}
+                                  initial={{ opacity: 0, x: -10 }}
+                                  whileInView={{ opacity: 1, x: 0 }}
+                                  viewport={{ once: true }}
+                                  transition={{ delay: i * 0.05 }}
+                                  className="flex items-start gap-3 text-muted-foreground"
+                                >
+                                  <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
+                                  <span>{feature}</span>
+                                </motion.li>
+                              ))}
+                            </ul>
+                          )}
+
+                          {/* PDF Button for Produção de Conteúdo */}
+                          {showPdfButton && (
+                            <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" className="gap-2 w-fit">
+                                  <FileText className="h-4 w-4" />
+                                  Ver exemplos de conteúdo
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl max-h-[90vh]">
+                                <DialogHeader>
+                                  <DialogTitle className="flex items-center gap-2">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                    Exemplos de Produção de Conteúdo
+                                  </DialogTitle>
+                                </DialogHeader>
+                                <div className="mt-4">
+                                  <div className="bg-muted rounded-lg p-8 text-center">
+                                    <FileText className="h-16 w-16 text-primary mx-auto mb-4" />
+                                    <p className="text-muted-foreground mb-4">
+                                      Visualize nossos exemplos de produção de conteúdo
+                                    </p>
+                                    <Button asChild className="gap-2">
+                                      <a href="/docs/producao-conteudo.pdf" target="_blank" rel="noopener noreferrer">
+                                        <ExternalLink className="h-4 w-4" />
+                                        Abrir PDF em nova aba
+                                      </a>
+                                    </Button>
+                                  </div>
+                                  {/* PDF Iframe preview */}
+                                  <div className="mt-4 border rounded-lg overflow-hidden bg-white">
+                                    <iframe
+                                      src="/docs/producao-conteudo.pdf"
+                                      className="w-full h-[500px]"
+                                      title="Produção de Conteúdo PDF"
+                                    />
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          )}
                         </div>
-                      </motion.div>
-
-                      {/* Content Section */}
-                      <div className="p-6 md:p-8">
-                        <p className="text-muted-foreground text-lg mb-6 leading-relaxed">
-                          {service.description}
-                        </p>
-
-                        {service.how_we_do && (
-                          <h3 className="font-semibold text-primary mb-4">{service.how_we_do}</h3>
-                        )}
-
-                        {features.length > 0 && (
-                          <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                            {features.map((feature, i) => (
-                              <motion.li
-                                key={i}
-                                initial={{ opacity: 0, x: -10 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: i * 0.05 }}
-                                className="flex items-start gap-3 text-muted-foreground"
-                              >
-                                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                                <span>{feature}</span>
-                              </motion.li>
-                            ))}
-                          </ul>
-                        )}
-
-                        {/* PDF Button for Produção de Conteúdo */}
-                        {showPdfButton && (
-                          <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" className="gap-2">
-                                <FileText className="h-4 w-4" />
-                                Ver exemplos de conteúdo
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-4xl max-h-[90vh]">
-                              <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2">
-                                  <FileText className="h-5 w-5 text-primary" />
-                                  Exemplos de Produção de Conteúdo
-                                </DialogTitle>
-                              </DialogHeader>
-                              <div className="mt-4">
-                                <div className="bg-muted rounded-lg p-8 text-center">
-                                  <FileText className="h-16 w-16 text-primary mx-auto mb-4" />
-                                  <p className="text-muted-foreground mb-4">
-                                    Visualize nossos exemplos de produção de conteúdo
-                                  </p>
-                                  <Button asChild className="gap-2">
-                                    <a href="/docs/producao-conteudo.pdf" target="_blank" rel="noopener noreferrer">
-                                      <ExternalLink className="h-4 w-4" />
-                                      Abrir PDF em nova aba
-                                    </a>
-                                  </Button>
-                                </div>
-                                {/* PDF Iframe preview */}
-                                <div className="mt-4 border rounded-lg overflow-hidden bg-white">
-                                  <iframe
-                                    src="/docs/producao-conteudo.pdf"
-                                    className="w-full h-[500px]"
-                                    title="Produção de Conteúdo PDF"
-                                  />
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        )}
                       </div>
                     </div>
                   </AnimatedSection>
