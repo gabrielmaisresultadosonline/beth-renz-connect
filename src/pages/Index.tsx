@@ -17,6 +17,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import heroBg from '@/assets/hero-bg.jpg';
+import quemSomosImage from '@/assets/quem-somos-home.jpg';
 
 interface PressRelease {
   id: string;
@@ -560,7 +561,7 @@ export default function Index() {
                   transition={{ duration: 0.5 }}
                 >
                   <img
-                    src={content.about?.image_url || heroBg}
+                    src={content.about?.image_url || quemSomosImage}
                     alt="Beth Renz"
                     className="w-full h-full object-cover"
                   />
