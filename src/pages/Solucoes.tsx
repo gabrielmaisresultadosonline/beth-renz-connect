@@ -146,12 +146,12 @@ export default function Solucoes() {
 
                         {/* Content Section with title at top */}
                         <div className="w-full lg:w-3/5 p-6 md:p-8 flex flex-col justify-center">
-                          {/* Title with icon at top */}
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                              <IconComponent className="h-5 w-5 text-primary-foreground" />
+                          {/* Title with icon - centered and larger */}
+                          <div className="flex flex-col items-center text-center mb-6">
+                            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-3">
+                              <IconComponent className="h-6 w-6 text-primary-foreground" />
                             </div>
-                            <h2 className="text-xl font-display font-bold text-foreground">{service.title}</h2>
+                            <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">{service.title}</h2>
                           </div>
 
                           <p className="text-muted-foreground text-lg mb-6 leading-relaxed">
