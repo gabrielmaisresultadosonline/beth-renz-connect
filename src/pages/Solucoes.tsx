@@ -120,21 +120,23 @@ export default function Solucoes() {
                       className={`flex flex-col lg:flex-row gap-8 items-stretch ${!isEven ? 'lg:flex-row-reverse' : ''}`}
                     >
                       {/* Image/Icon Card */}
-                      <motion.div className="w-full lg:w-1/3" whileHover={{ scale: 1.02 }}>
-                        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 h-full overflow-hidden">
+                      <motion.div className="w-full lg:w-80 flex-shrink-0" whileHover={{ scale: 1.02 }}>
+                        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 overflow-hidden">
                           {hasImage ? (
-                            <div className="relative h-full">
-                              <img 
-                                src={service.image_url!} 
-                                alt={service.title}
-                                className="w-full h-64 lg:h-full object-cover"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
+                            <div className="relative">
+                              <div className="aspect-square w-full">
+                                <img 
+                                  src={service.image_url!} 
+                                  alt={service.title}
+                                  className="w-full h-full object-contain bg-muted/30"
+                                />
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-                                    <IconComponent className="h-6 w-6 text-primary-foreground" />
+                                  <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                                    <IconComponent className="h-5 w-5 text-primary-foreground" />
                                   </div>
-                                  <h2 className="text-xl font-display font-bold text-white">{service.title}</h2>
+                                  <h2 className="text-lg font-display font-bold text-white">{service.title}</h2>
                                 </div>
                               </div>
                             </div>
