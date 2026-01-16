@@ -1,9 +1,10 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { 
   Newspaper, 
   Users, 
@@ -18,9 +19,9 @@ import {
   X,
   LayoutDashboard,
   UserCircle,
-  Briefcase
+  Briefcase,
+  Play
 } from 'lucide-react';
-import { useState } from 'react';
 import logo from '@/assets/logo.png';
 
 const navItems = [
@@ -49,6 +50,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminVerified, setAdminVerified] = useState<boolean | null>(null);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   useEffect(() => {
     const verifyAdminAccess = async () => {
@@ -174,6 +176,13 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
               Ver Site
             </Link>
             <button 
+              onClick={() => setTutorialOpen(true)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all w-full"
+            >
+              <Play className="h-5 w-5" />
+              TUTORIAL
+            </button>
+            <button 
               onClick={() => { signOut(); navigate('/'); }}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all w-full"
             >
@@ -212,6 +221,21 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
           </motion.div>
         </main>
       </div>
+
+      {/* Tutorial Video Modal */}
+      <Dialog open={tutorialOpen} onOpenChange={setTutorialOpen}>
+        <DialogContent className="max-w-[95vw] w-full sm:max-w-4xl p-0 bg-black border-none">
+          <div className="relative w-full aspect-video">
+            <iframe
+              src="https://www.youtube.com/embed/jUQvtu8HLrM?autoplay=1"
+              title="Tutorial"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
