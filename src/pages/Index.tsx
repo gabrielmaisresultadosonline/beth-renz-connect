@@ -221,11 +221,7 @@ export default function Index() {
             
             {/* Main Column - 2/3 width */}
             <div className="lg:col-span-2 space-y-8">
-              
-              {/* Homepage Slider */}
-              <AnimatedSection>
-                <HomepageSlider />
-              </AnimatedSection>
+
 
               {/* Featured Article */}
               {featuredRelease ? (
@@ -406,6 +402,11 @@ export default function Index() {
                   )}
                 </AnimatedSection>
               )}
+
+              {/* Homepage Slider */}
+              <AnimatedSection delay={0.05}>
+                <HomepageSlider />
+              </AnimatedSection>
 
               {/* Blog da Beth Section */}
               {sectionVisibility.sidebar_blog && (
