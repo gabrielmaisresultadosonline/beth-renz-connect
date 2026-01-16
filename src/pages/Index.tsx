@@ -82,6 +82,7 @@ interface SectionVisibility {
   sidebar_blog: boolean;
   sidebar_clients: boolean;
   sidebar_partners: boolean;
+  slider_images: boolean;
 }
 
 export default function Index() {
@@ -99,6 +100,7 @@ export default function Index() {
     sidebar_blog: true,
     sidebar_clients: true,
     sidebar_partners: true,
+    slider_images: true,
   });
 
   useEffect(() => {
@@ -145,6 +147,7 @@ export default function Index() {
           sidebar_blog: true,
           sidebar_clients: true,
           sidebar_partners: true,
+          slider_images: true,
         };
         sectionsData.data.forEach((section: { section_key: string; visible: boolean | null }) => {
           if (section.section_key in visibility) {
@@ -348,9 +351,11 @@ export default function Index() {
             <aside className="space-y-8">
 
               {/* Homepage Slider */}
-              <AnimatedSection delay={0.05}>
-                <HomepageSlider />
-              </AnimatedSection>
+              {sectionVisibility.slider_images && (
+                <AnimatedSection delay={0.05}>
+                  <HomepageSlider />
+                </AnimatedSection>
+              )}
 
               {/* Blog da Beth Section */}
               {sectionVisibility.sidebar_blog && (
