@@ -115,10 +115,10 @@ export default function Contato() {
   };
 
   const socialLinks = [
-    { icon: Linkedin, href: '#', label: 'LinkedIn' },
-    { icon: Instagram, href: '#', label: 'Instagram' },
-    { icon: Facebook, href: '#', label: 'Facebook' },
-    { icon: Youtube, href: '#', label: 'YouTube' },
+    { icon: Linkedin, href: 'https://www.linkedin.com/in/elizabethrenz/', label: 'LinkedIn' },
+    { icon: Instagram, href: 'https://www.instagram.com/bethrenz/', label: 'Instagram' },
+    { icon: Facebook, href: 'https://www.facebook.com/elizabeth.renz.3', label: 'Facebook' },
+    { icon: Youtube, href: 'https://www.youtube.com/@BetheCiapodcast', label: 'YouTube' },
   ];
 
   return (
