@@ -93,9 +93,6 @@ export default function Index() {
   const [selectedRelease, setSelectedRelease] = useState<PressRelease | null>(null);
   const [selectedTip, setSelectedTip] = useState<Tip | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showSearchResults, setShowSearchResults] = useState(false);
   const [pressReleasesLimit, setPressReleasesLimit] = useState(5);
   const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>({
     sidebar_search: true,
@@ -161,56 +158,23 @@ export default function Index() {
     fetchData();
   }, []);
 
-  // Search functionality
-  useEffect(() => {
-    const searchTimeout = setTimeout(async () => {
-      if (searchQuery.trim().length < 2) {
-        setSearchResults([]);
-        setShowSearchResults(false);
-        return;
-      }
+  // Filter releases based on search
+  const filteredReleases = searchQuery.trim().length >= 2
+    ? releases.filter(r => r.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    : releases;
 
-      setIsSearching(true);
-      const searchTerm = `%${searchQuery}%`;
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim().length >= 2) {
+      // Navigate to press releases page with search query
+      window.location.href = `/press-releases?search=${encodeURIComponent(searchQuery)}`;
+    }
+  };
 
-      const [releasesRes, tipsRes, clippingRes] = await Promise.all([
-        supabase
-          .from('press_releases')
-          .select('id, title')
-          .eq('published', true)
-          .ilike('title', searchTerm)
-          .limit(5),
-        supabase
-          .from('tips')
-          .select('id, title')
-          .eq('published', true)
-          .ilike('title', searchTerm)
-          .limit(5),
-        supabase
-          .from('clipping')
-          .select('id, title')
-          .ilike('title', searchTerm)
-          .limit(5),
-      ]);
-
-      const results: SearchResult[] = [
-        ...(releasesRes.data || []).map(r => ({ id: r.id, title: r.title, type: 'release' as const, link: `/press-releases/${r.id}` })),
-        ...(tipsRes.data || []).map(t => ({ id: t.id, title: t.title, type: 'tip' as const, link: `/dicas` })),
-        ...(clippingRes.data || []).map(c => ({ id: c.id, title: c.title, type: 'clipping' as const, link: `/clipping` })),
-      ];
-
-      setSearchResults(results);
-      setShowSearchResults(true);
-      setIsSearching(false);
-    }, 300);
-
-    return () => clearTimeout(searchTimeout);
-  }, [searchQuery]);
-
-  const featuredRelease = releases[0];
-  const otherReleases = releases.slice(1, pressReleasesLimit);
-  const hasMoreReleases = releases.length > pressReleasesLimit;
+  const featuredRelease = filteredReleases[0];
+  const otherReleases = filteredReleases.slice(1, pressReleasesLimit);
+  const hasMoreReleases = filteredReleases.length > pressReleasesLimit;
   const sidebarTip = tips[0];
+  const noSearchResults = searchQuery.trim().length >= 2 && filteredReleases.length === 0;
 
   return (
     <Layout>
@@ -222,6 +186,49 @@ export default function Index() {
             {/* Main Column - 2/3 width */}
             <div className="lg:col-span-2 space-y-8">
 
+              {/* Search Box - Above News */}
+              <AnimatedSection>
+                <div className="relative">
+                  <Input
+                    type="search"
+                    placeholder="Pesquisar notícias..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                    className="w-full pl-4 pr-10 py-3 bg-secondary border-0"
+                  />
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+                {searchQuery.trim().length >= 2 && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {filteredReleases.length > 0 
+                      ? `${filteredReleases.length} resultado(s) encontrado(s)`
+                      : 'Nenhum resultado. Pressione Enter para ver todos os releases.'
+                    }
+                  </p>
+                )}
+              </AnimatedSection>
+
+              {/* No Results - Link to All Releases */}
+              {noSearchResults && (
+                <AnimatedSection>
+                  <div className="text-center py-12 bg-secondary/50 rounded-xl">
+                    <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h2 className="text-xl font-display font-bold text-foreground mb-2">
+                      Nenhum resultado para "{searchQuery}"
+                    </h2>
+                    <p className="text-muted-foreground mb-4">
+                      Não encontramos notícias com esse termo
+                    </p>
+                    <Button asChild>
+                      <Link to={`/press-releases?search=${encodeURIComponent(searchQuery)}`}>
+                        Ver todos os Press Releases
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </AnimatedSection>
+              )}
 
               {/* Featured Article */}
               {featuredRelease ? (
@@ -339,69 +346,6 @@ export default function Index() {
 
             {/* Sidebar - 1/3 width */}
             <aside className="space-y-8">
-              
-              {/* Search Box */}
-              {sectionVisibility.sidebar_search && (
-                <AnimatedSection>
-                  <div className="relative">
-                    <Input
-                      type="search"
-                      placeholder="Pesquisar ..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
-                      className="w-full pl-4 pr-10 py-3 bg-secondary border-0"
-                    />
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    
-                    {/* Search Results Dropdown */}
-                    {showSearchResults && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-                        {isSearching ? (
-                          <div className="p-4 text-center text-muted-foreground">
-                            Pesquisando...
-                          </div>
-                        ) : searchResults.length > 0 ? (
-                          <div className="py-2">
-                            {searchResults.map((result) => (
-                              <Link
-                                key={`${result.type}-${result.id}`}
-                                to={result.link}
-                                onClick={() => {
-                                  setShowSearchResults(false);
-                                  setSearchQuery('');
-                                }}
-                                className="block px-4 py-3 hover:bg-secondary transition-colors"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold uppercase text-primary">
-                                    {result.type === 'release' ? 'Press Release' : result.type === 'tip' ? 'Blog' : 'Clipping'}
-                                  </span>
-                                </div>
-                                <p className="text-sm font-medium text-foreground line-clamp-2">
-                                  {result.title}
-                                </p>
-                              </Link>
-                            ))}
-                          </div>
-                        ) : searchQuery.length >= 2 ? (
-                          <div className="p-4 text-center text-muted-foreground">
-                            Nenhum resultado encontrado para "{searchQuery}"
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Click outside to close */}
-                  {showSearchResults && (
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setShowSearchResults(false)}
-                    />
-                  )}
-                </AnimatedSection>
-              )}
 
               {/* Homepage Slider */}
               <AnimatedSection delay={0.05}>
