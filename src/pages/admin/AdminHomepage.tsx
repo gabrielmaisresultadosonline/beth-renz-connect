@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Image, Loader2 } from 'lucide-react';
 import { ImageUpload } from '@/components/admin/ImageUpload';
+import { DraggableImagePosition } from '@/components/admin/DraggableImagePosition';
 
 interface HomepageSection {
   id: string;
@@ -42,7 +42,7 @@ export default function AdminHomepage() {
     title: '',
     link: '',
     active: true,
-    image_position: 'center',
+    image_position: '50',
   });
   const { toast } = useToast();
 
@@ -121,7 +121,7 @@ export default function AdminHomepage() {
   };
 
   const resetSlideForm = () => {
-    setSlideForm({ image_url: '', title: '', link: '', active: true, image_position: 'center' });
+    setSlideForm({ image_url: '', title: '', link: '', active: true, image_position: '50' });
     setEditingSlide(null);
   };
 
@@ -132,7 +132,7 @@ export default function AdminHomepage() {
       title: slide.title || '',
       link: slide.link || '',
       active: slide.active,
-      image_position: slide.image_position || 'center',
+      image_position: slide.image_position || '50',
     });
     setDialogOpen(true);
   };
@@ -233,25 +233,16 @@ export default function AdminHomepage() {
                       placeholder="https://... ou /press-releases/id"
                     />
                   </div>
-                  <div>
-                    <Label>Posição da Imagem</Label>
-                    <Select
-                      value={slideForm.image_position}
-                      onValueChange={(value) => setSlideForm({ ...slideForm, image_position: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Posição vertical" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="top">Topo</SelectItem>
-                        <SelectItem value="center">Centro</SelectItem>
-                        <SelectItem value="bottom">Embaixo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Ajusta qual parte da imagem fica visível
-                    </p>
-                  </div>
+                  {slideForm.image_url && (
+                    <div>
+                      <Label>Posição da Imagem</Label>
+                      <DraggableImagePosition
+                        imageUrl={slideForm.image_url}
+                        position={parseInt(slideForm.image_position) || 50}
+                        onChange={(pos) => setSlideForm({ ...slideForm, image_position: pos.toString() })}
+                      />
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={slideForm.active}
