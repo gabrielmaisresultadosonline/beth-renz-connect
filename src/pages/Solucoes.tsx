@@ -1,7 +1,9 @@
 import { Layout } from '@/components/Layout';
 import { PageHero } from '@/components/PageHero';
 import { AnimatedSection } from '@/components/AnimatedSection';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -18,8 +20,11 @@ import {
   AlertTriangle,
   Users,
   Lightbulb,
-  LucideIcon
+  LucideIcon,
+  FileText,
+  ExternalLink
 } from 'lucide-react';
+import { useState } from 'react';
 
 // Map of icon names to components
 const iconMap: Record<string, LucideIcon> = {
@@ -45,9 +50,12 @@ interface Service {
   features: string[] | null;
   how_we_do: string | null;
   display_order: number | null;
+  image_url: string | null;
 }
 
 export default function Solucoes() {
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+
   const {
     data: services,
     isLoading,
@@ -69,6 +77,11 @@ export default function Solucoes() {
   const getIcon = (iconName: string | null | undefined): LucideIcon => {
     if (!iconName) return Briefcase;
     return iconMap[iconName] || Briefcase;
+  };
+
+  // Check if this is the "Produção de Conteúdo" service
+  const isProducaoConteudo = (title: string) => {
+    return title.toLowerCase().includes('produção de conteúdo');
   };
 
   return (
@@ -98,25 +111,45 @@ export default function Solucoes() {
                 const IconComponent = getIcon(service.icon);
                 const isEven = index % 2 === 0;
                 const features = service.features ?? [];
+                const hasImage = !!service.image_url;
+                const showPdfButton = isProducaoConteudo(service.title);
 
                 return (
                   <AnimatedSection key={service.id} delay={index * 0.1}>
                     <div
-                      className={`flex flex-col lg:flex-row gap-8 items-start ${!isEven ? 'lg:flex-row-reverse' : ''}`}
+                      className={`flex flex-col lg:flex-row gap-8 items-stretch ${!isEven ? 'lg:flex-row-reverse' : ''}`}
                     >
-                      {/* Icon Card */}
+                      {/* Image/Icon Card */}
                       <motion.div className="w-full lg:w-1/3" whileHover={{ scale: 1.02 }}>
-                        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 h-full">
-                          <CardContent className="p-8 text-center">
-                            <motion.div
-                              whileHover={{ rotate: 360 }}
-                              transition={{ duration: 0.6 }}
-                              className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-6"
-                            >
-                              <IconComponent className="h-10 w-10 text-primary-foreground" />
-                            </motion.div>
-                            <h2 className="text-2xl font-display font-bold text-foreground">{service.title}</h2>
-                          </CardContent>
+                        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 h-full overflow-hidden">
+                          {hasImage ? (
+                            <div className="relative h-full">
+                              <img 
+                                src={service.image_url!} 
+                                alt={service.title}
+                                className="w-full h-64 lg:h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+                                    <IconComponent className="h-6 w-6 text-primary-foreground" />
+                                  </div>
+                                  <h2 className="text-xl font-display font-bold text-white">{service.title}</h2>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <CardContent className="p-8 text-center h-full flex flex-col items-center justify-center">
+                              <motion.div
+                                whileHover={{ rotate: 360 }}
+                                transition={{ duration: 0.6 }}
+                                className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-6"
+                              >
+                                <IconComponent className="h-10 w-10 text-primary-foreground" />
+                              </motion.div>
+                              <h2 className="text-2xl font-display font-bold text-foreground">{service.title}</h2>
+                            </CardContent>
+                          )}
                         </Card>
                       </motion.div>
 
@@ -124,6 +157,9 @@ export default function Solucoes() {
                       <div className="w-full lg:w-2/3">
                         <Card className="bg-card border-border h-full">
                           <CardContent className="p-8">
+                            {!hasImage && (
+                              <h3 className="text-xl font-display font-bold text-foreground mb-4 lg:hidden">{service.title}</h3>
+                            )}
                             <p className="text-muted-foreground text-lg mb-6 leading-relaxed">
                               {service.description}
                             </p>
@@ -133,7 +169,7 @@ export default function Solucoes() {
                             )}
 
                             {features.length > 0 && (
-                              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                                 {features.map((feature, i) => (
                                   <motion.li
                                     key={i}
@@ -148,6 +184,48 @@ export default function Solucoes() {
                                   </motion.li>
                                 ))}
                               </ul>
+                            )}
+
+                            {/* PDF Button for Produção de Conteúdo */}
+                            {showPdfButton && (
+                              <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
+                                <DialogTrigger asChild>
+                                  <Button variant="outline" className="gap-2">
+                                    <FileText className="h-4 w-4" />
+                                    Ver exemplos de conteúdo
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-4xl max-h-[90vh]">
+                                  <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2">
+                                      <FileText className="h-5 w-5 text-primary" />
+                                      Exemplos de Produção de Conteúdo
+                                    </DialogTitle>
+                                  </DialogHeader>
+                                  <div className="mt-4">
+                                    <div className="bg-muted rounded-lg p-8 text-center">
+                                      <FileText className="h-16 w-16 text-primary mx-auto mb-4" />
+                                      <p className="text-muted-foreground mb-4">
+                                        Visualize nossos exemplos de produção de conteúdo
+                                      </p>
+                                      <Button asChild className="gap-2">
+                                        <a href="/docs/producao-conteudo.pdf" target="_blank" rel="noopener noreferrer">
+                                          <ExternalLink className="h-4 w-4" />
+                                          Abrir PDF em nova aba
+                                        </a>
+                                      </Button>
+                                    </div>
+                                    {/* PDF Iframe preview */}
+                                    <div className="mt-4 border rounded-lg overflow-hidden bg-white">
+                                      <iframe
+                                        src="/docs/producao-conteudo.pdf"
+                                        className="w-full h-[500px]"
+                                        title="Produção de Conteúdo PDF"
+                                      />
+                                    </div>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
                             )}
                           </CardContent>
                         </Card>

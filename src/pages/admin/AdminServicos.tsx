@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, GripVertical, Target, Newspaper, PenTool, User, Video, Briefcase, Mic, Share2, TrendingUp, AlertTriangle, Users, Lightbulb, LucideIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, GripVertical, Target, Newspaper, PenTool, User, Video, Briefcase, Mic, Share2, TrendingUp, AlertTriangle, Users, Lightbulb, LucideIcon, Upload, X, Image as ImageIcon } from 'lucide-react';
 
 const iconOptions = [
   { value: 'Target', label: 'Alvo', icon: Target },
@@ -41,6 +41,7 @@ interface Service {
   how_we_do: string | null;
   display_order: number;
   active: boolean;
+  image_url: string | null;
 }
 
 export default function AdminServicos() {
@@ -48,6 +49,7 @@ export default function AdminServicos() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Service | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const [form, setForm] = useState({
     title: '',
@@ -56,6 +58,7 @@ export default function AdminServicos() {
     features: '',
     how_we_do: '',
     active: true,
+    image_url: '',
   });
 
   const { data: services, isLoading } = useQuery({
@@ -68,6 +71,36 @@ export default function AdminServicos() {
       return data as Service[];
     },
   });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `services/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('uploads')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(filePath);
+
+      setForm({ ...form, image_url: publicUrl });
+      toast({ title: 'Imagem enviada com sucesso!' });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({ title: 'Erro ao enviar imagem', variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof form) => {
@@ -83,6 +116,7 @@ export default function AdminServicos() {
             features: featuresArray,
             how_we_do: data.how_we_do || null,
             active: data.active,
+            image_url: data.image_url || null,
           })
           .eq('id', editing.id);
         if (error) throw error;
@@ -98,6 +132,7 @@ export default function AdminServicos() {
             how_we_do: data.how_we_do || null,
             active: data.active,
             display_order: maxOrder + 1,
+            image_url: data.image_url || null,
           }]);
         if (error) throw error;
       }
@@ -135,6 +170,7 @@ export default function AdminServicos() {
       features: '',
       how_we_do: '',
       active: true,
+      image_url: '',
     });
   };
 
@@ -147,6 +183,7 @@ export default function AdminServicos() {
       features: service.features.join('\n'),
       how_we_do: service.how_we_do || '',
       active: service.active,
+      image_url: service.image_url || '',
     });
     setDialogOpen(true);
   };
@@ -215,6 +252,52 @@ export default function AdminServicos() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Image Upload */}
+                <div>
+                  <Label>Imagem do Serviço</Label>
+                  <div className="mt-2">
+                    {form.image_url ? (
+                      <div className="relative inline-block">
+                        <img 
+                          src={form.image_url} 
+                          alt="Preview" 
+                          className="w-40 h-28 object-cover rounded-lg border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6"
+                          onClick={() => setForm({ ...form, image_url: '' })}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-40 h-28 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageUpload}
+                          disabled={uploading}
+                        />
+                        {uploading ? (
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                        ) : (
+                          <>
+                            <ImageIcon className="h-8 w-8 text-muted-foreground mb-1" />
+                            <span className="text-xs text-muted-foreground">Adicionar imagem</span>
+                          </>
+                        )}
+                      </label>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Opcional: imagem será exibida no card do serviço
+                  </p>
+                </div>
                 
                 <div>
                   <Label>Descrição</Label>
@@ -274,9 +357,17 @@ Identificando oportunidades"
                 <Card key={service.id}>
                   <CardContent className="p-4 flex items-center gap-4">
                     <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <IconComp className="h-6 w-6 text-primary" />
-                    </div>
+                    {service.image_url ? (
+                      <img 
+                        src={service.image_url} 
+                        alt={service.title}
+                        className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <IconComp className="h-6 w-6 text-primary" />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold truncate">{service.title}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-1">{service.description}</p>
