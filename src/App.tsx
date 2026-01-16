@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth";
 import { useDynamicFavicon } from "@/hooks/use-dynamic-favicon";
+import ScrollToTop from "@/components/ScrollToTop";
 import Index from "./pages/Index";
 import QuemSomos from "./pages/QuemSomos";
 import Solucoes from "./pages/Solucoes";
@@ -74,6 +75,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ScrollToTop />
           <AppContent />
         </BrowserRouter>
       </TooltipProvider>
