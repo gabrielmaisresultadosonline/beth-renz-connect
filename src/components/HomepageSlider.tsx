@@ -55,10 +55,16 @@ export function HomepageSlider() {
   const currentSlide = slides[currentIndex];
 
   const getObjectPosition = (position: string | null) => {
+    // If it's a number (percentage), use it directly
+    const numPos = parseInt(position || '50');
+    if (!isNaN(numPos)) {
+      return `center ${numPos}%`;
+    }
+    // Fallback for old values
     switch (position) {
-      case 'top': return 'object-top';
-      case 'bottom': return 'object-bottom';
-      default: return 'object-center';
+      case 'top': return 'center 0%';
+      case 'bottom': return 'center 100%';
+      default: return 'center 50%';
     }
   };
 
@@ -67,7 +73,8 @@ export function HomepageSlider() {
       <img
         src={currentSlide.image_url}
         alt={currentSlide.title || 'Slide'}
-        className={`w-full h-full object-cover ${getObjectPosition(currentSlide.image_position)}`}
+        className="w-full h-full object-cover"
+        style={{ objectPosition: getObjectPosition(currentSlide.image_position) }}
       />
       
       {/* Overlay with title */}
