@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,8 +21,14 @@ export function ImageUpload({ value, onChange, label = "Imagem", folder = "image
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  
+  // Use ref to store the onChange callback to avoid stale closures
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
-  const uploadFile = async (file: File): Promise<string | null> => {
+  const uploadFile = useCallback(async (file: File): Promise<string | null> => {
     if (!file.type.startsWith('image/')) {
       toast({ title: 'Tipo inválido', description: 'Selecione uma imagem', variant: 'destructive' });
       return null;
@@ -56,18 +62,18 @@ export function ImageUpload({ value, onChange, label = "Imagem", folder = "image
     } finally {
       setUploading(false);
     }
-  };
+  }, [folder, toast]);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const url = await uploadFile(file);
     if (url) {
-      onChange(url);
+      onChangeRef.current(url);
     }
     e.target.value = '';
-  };
+  }, [uploadFile]);
 
   const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
@@ -79,12 +85,12 @@ export function ImageUpload({ value, onChange, label = "Imagem", folder = "image
         const file = item.getAsFile();
         if (file) {
           const url = await uploadFile(file);
-          if (url) onChange(url);
+          if (url) onChangeRef.current(url);
         }
         return;
       }
     }
-  }, [folder]);
+  }, [uploadFile]);
 
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
@@ -96,9 +102,9 @@ export function ImageUpload({ value, onChange, label = "Imagem", folder = "image
     const file = files[0];
     if (file.type.startsWith('image/')) {
       const url = await uploadFile(file);
-      if (url) onChange(url);
+      if (url) onChangeRef.current(url);
     }
-  }, [folder]);
+  }, [uploadFile]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -110,16 +116,16 @@ export function ImageUpload({ value, onChange, label = "Imagem", folder = "image
     dropzoneRef.current?.classList.remove('border-primary', 'bg-primary/5');
   };
 
-  const handleUrlSubmit = () => {
+  const handleUrlSubmit = useCallback(() => {
     if (urlInput.trim()) {
-      onChange(urlInput.trim());
+      onChangeRef.current(urlInput.trim());
       setUrlInput('');
     }
-  };
+  }, [urlInput]);
 
-  const clearImage = () => {
-    onChange('');
-  };
+  const clearImage = useCallback(() => {
+    onChangeRef.current('');
+  }, []);
 
   return (
     <div className="space-y-2">
