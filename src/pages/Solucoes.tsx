@@ -120,13 +120,13 @@ export default function Solucoes() {
                     <div className="rounded-2xl border-4 border-primary bg-card shadow-lg overflow-hidden">
                       {/* Flex container - vertical on mobile (image top), horizontal on desktop (content left, image right) */}
                       <div className="flex flex-col-reverse lg:flex-row">
-                        {/* Image Section - larger on desktop */}
+                        {/* Image Section - clean without overlay */}
                         <motion.div 
                           className="w-full lg:w-2/5 flex-shrink-0 bg-gradient-to-br from-primary/10 to-primary/5"
                           whileHover={{ scale: 1.01 }}
                         >
                           {hasImage ? (
-                            <div className="relative h-full">
+                            <div className="h-full">
                               <div className="aspect-[4/3] lg:aspect-auto lg:h-full w-full">
                                 <img 
                                   src={service.image_url!} 
@@ -134,31 +134,26 @@ export default function Solucoes() {
                                   className="w-full h-full object-cover bg-muted/30"
                                 />
                               </div>
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                                    <IconComponent className="h-5 w-5 text-primary-foreground" />
-                                  </div>
-                                  <h2 className="text-lg font-display font-bold text-white">{service.title}</h2>
-                                </div>
-                              </div>
                             </div>
                           ) : (
-                            <div className="p-8 text-center h-full flex flex-col items-center justify-center min-h-[200px] lg:min-h-[300px]">
-                              <motion.div
-                                whileHover={{ rotate: 360 }}
-                                transition={{ duration: 0.6 }}
-                                className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4"
-                              >
-                                <IconComponent className="h-10 w-10 text-primary-foreground" />
-                              </motion.div>
-                              <h2 className="text-xl font-display font-bold text-foreground">{service.title}</h2>
+                            <div className="p-8 text-center h-full flex flex-col items-center justify-center min-h-[200px] lg:min-h-[300px] bg-gradient-to-br from-primary/20 to-primary/5">
+                              <div className="w-24 h-24 rounded-2xl bg-primary/20 flex items-center justify-center">
+                                <IconComponent className="h-12 w-12 text-primary" />
+                              </div>
                             </div>
                           )}
                         </motion.div>
 
-                        {/* Content Section */}
+                        {/* Content Section with title at top */}
                         <div className="w-full lg:w-3/5 p-6 md:p-8 flex flex-col justify-center">
+                          {/* Title with icon at top */}
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+                              <IconComponent className="h-5 w-5 text-primary-foreground" />
+                            </div>
+                            <h2 className="text-xl font-display font-bold text-foreground">{service.title}</h2>
+                          </div>
+
                           <p className="text-muted-foreground text-lg mb-6 leading-relaxed">
                             {service.description}
                           </p>
