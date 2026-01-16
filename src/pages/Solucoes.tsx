@@ -202,20 +202,15 @@ export default function Solucoes() {
                                     <p className="text-muted-foreground mb-4">
                                       Visualize nossos exemplos de produção de conteúdo
                                     </p>
+                                    <p className="text-sm text-muted-foreground/70 mb-4">
+                                      Clique no botão abaixo para abrir o PDF com nossos trabalhos
+                                    </p>
                                     <Button asChild className="gap-2">
                                       <a href="/docs/producao-conteudo.pdf" target="_blank" rel="noopener noreferrer">
                                         <ExternalLink className="h-4 w-4" />
                                         Abrir PDF em nova aba
                                       </a>
                                     </Button>
-                                  </div>
-                                  {/* PDF Iframe preview */}
-                                  <div className="mt-4 border rounded-lg overflow-hidden bg-white">
-                                    <iframe
-                                      src="/docs/producao-conteudo.pdf"
-                                      className="w-full h-[500px]"
-                                      title="Produção de Conteúdo PDF"
-                                    />
                                   </div>
                                 </div>
                               </DialogContent>
