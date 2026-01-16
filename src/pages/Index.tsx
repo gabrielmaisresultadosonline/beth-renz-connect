@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import heroBg from '@/assets/hero-bg.jpg';
 import quemSomosImage from '@/assets/quem-somos-home.jpg';
+import { HomepageSlider } from '@/components/HomepageSlider';
 
 interface PressRelease {
   id: string;
@@ -221,6 +222,11 @@ export default function Index() {
             {/* Main Column - 2/3 width */}
             <div className="lg:col-span-2 space-y-8">
               
+              {/* Homepage Slider */}
+              <AnimatedSection>
+                <HomepageSlider />
+              </AnimatedSection>
+
               {/* Featured Article */}
               {featuredRelease ? (
                 <AnimatedSection>
