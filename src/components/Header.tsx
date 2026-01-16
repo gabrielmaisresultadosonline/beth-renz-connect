@@ -90,12 +90,12 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden xl:flex items-center gap-1">
+          <nav className="hidden xl:flex items-center gap-0.5">
             {navItems.map((item, index) => (
               <Link
                 key={item.href}
                 to={item.href}
-                className={`relative px-4 py-2 text-sm font-medium transition-all duration-300 rounded-md group ${
+                className={`relative px-2.5 py-2 text-xs font-medium transition-all duration-300 rounded-md group whitespace-nowrap ${
                   location.pathname === item.href
                     ? 'text-primary'
                     : 'text-foreground/80 hover:text-primary'
@@ -117,13 +117,13 @@ export function Header() {
 
           {/* CTA Buttons */}
           {showCta && (
-            <div className="hidden xl:flex items-center gap-3">
-              <Button asChild className="font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25 border-0">
+            <div className="hidden xl:flex items-center gap-2">
+              <Button asChild size="sm" className="text-xs font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25 border-0 px-3 py-1.5 h-auto">
                 <a href="https://slnegociosecia.com.br/" target="_blank" rel="noopener noreferrer">
                   PORTAL São Leopoldo
                 </a>
               </Button>
-              <Button asChild variant="outline" className="font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+              <Button asChild variant="outline" size="sm" className="text-xs font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground px-3 py-1.5 h-auto">
                 <Link to="/contato">Fale conosco</Link>
               </Button>
             </div>
