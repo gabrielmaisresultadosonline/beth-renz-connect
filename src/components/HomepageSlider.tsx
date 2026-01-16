@@ -11,6 +11,7 @@ interface HomepageSlide {
   link: string | null;
   display_order: number;
   active: boolean;
+  image_position: string | null;
 }
 
 export function HomepageSlider() {
@@ -53,12 +54,20 @@ export function HomepageSlider() {
 
   const currentSlide = slides[currentIndex];
 
+  const getObjectPosition = (position: string | null) => {
+    switch (position) {
+      case 'top': return 'object-top';
+      case 'bottom': return 'object-bottom';
+      default: return 'object-center';
+    }
+  };
+
   const SlideContent = () => (
     <div className="relative aspect-[16/6] md:aspect-[16/5] w-full overflow-hidden rounded-lg">
       <img
         src={currentSlide.image_url}
         alt={currentSlide.title || 'Slide'}
-        className="w-full h-full object-cover"
+        className={`w-full h-full object-cover ${getObjectPosition(currentSlide.image_position)}`}
       />
       
       {/* Overlay with title */}
