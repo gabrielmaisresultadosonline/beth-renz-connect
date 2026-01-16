@@ -15,6 +15,7 @@ import PressReleaseDetail from "./pages/PressReleaseDetail";
 import Blog from "./pages/Blog";
 import Clipping from "./pages/Clipping";
 import Dicas from "./pages/Dicas";
+import DicaDetail from "./pages/DicaDetail";
 import Parceiros from "./pages/Parceiros";
 import Contato from "./pages/Contato";
 import AdminLogin from "./pages/AdminLogin";
@@ -48,6 +49,7 @@ function AppContent() {
       <Route path="/blog" element={<Blog />} />
       <Route path="/clipping" element={<Clipping />} />
       <Route path="/dicas" element={<Dicas />} />
+      <Route path="/dicas/:id" element={<DicaDetail />} />
       <Route path="/parceiros" element={<Parceiros />} />
       <Route path="/contato" element={<Contato />} />
       <Route path="/admin" element={<AdminLogin />} />
