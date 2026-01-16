@@ -116,138 +116,118 @@ export default function Solucoes() {
 
                 return (
                   <AnimatedSection key={service.id} delay={index * 0.1}>
-                    {/* Container with connecting border */}
-                    <div className="relative">
-                      {/* Desktop: L-shaped connector line */}
-                      <div className={`hidden lg:block absolute ${isEven ? 'left-[318px]' : 'right-[318px]'} top-4 bottom-4`}>
-                        {/* Vertical line */}
-                        <div className={`absolute ${isEven ? 'left-0' : 'right-0'} top-0 bottom-0 w-1 bg-primary rounded-full`} />
-                        {/* Top horizontal line */}
-                        <div className={`absolute ${isEven ? 'left-0' : 'right-0'} top-0 h-1 ${isEven ? 'w-8' : 'w-8'} bg-primary rounded-full`} />
-                        {/* Bottom horizontal line */}
-                        <div className={`absolute ${isEven ? 'left-0' : 'right-0'} bottom-0 h-1 ${isEven ? 'w-8' : 'w-8'} bg-primary rounded-full`} />
-                      </div>
-
-                      <div
-                        className={`flex flex-col lg:flex-row items-stretch gap-6 lg:gap-0 ${!isEven ? 'lg:flex-row-reverse' : ''}`}
-                      >
-                        {/* Image/Icon Card */}
-                        <motion.div className="w-full lg:w-80 flex-shrink-0 relative z-10" whileHover={{ scale: 1.02 }}>
-                          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary overflow-hidden h-full">
-                            {hasImage ? (
-                              <div className="relative h-full">
-                                <div className="aspect-square w-full">
-                                  <img 
-                                    src={service.image_url!} 
-                                    alt={service.title}
-                                    className="w-full h-full object-contain bg-muted/30"
-                                  />
-                                </div>
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                                      <IconComponent className="h-5 w-5 text-primary-foreground" />
-                                    </div>
-                                    <h2 className="text-lg font-display font-bold text-white">{service.title}</h2>
+                    <div className="flex flex-col items-center">
+                      {/* Image Card with thick border */}
+                      <motion.div className="w-full max-w-sm lg:max-w-md relative z-10" whileHover={{ scale: 1.02 }}>
+                        <div className="rounded-2xl border-4 border-primary overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg">
+                          {hasImage ? (
+                            <div className="relative">
+                              <div className="aspect-[4/3] w-full">
+                                <img 
+                                  src={service.image_url!} 
+                                  alt={service.title}
+                                  className="w-full h-full object-contain bg-muted/30"
+                                />
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                                    <IconComponent className="h-5 w-5 text-primary-foreground" />
                                   </div>
+                                  <h2 className="text-lg font-display font-bold text-white">{service.title}</h2>
                                 </div>
                               </div>
-                            ) : (
-                              <CardContent className="p-8 text-center h-full flex flex-col items-center justify-center">
-                                <motion.div
-                                  whileHover={{ rotate: 360 }}
-                                  transition={{ duration: 0.6 }}
-                                  className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-6"
-                                >
-                                  <IconComponent className="h-10 w-10 text-primary-foreground" />
-                                </motion.div>
-                                <h2 className="text-2xl font-display font-bold text-foreground">{service.title}</h2>
-                              </CardContent>
-                            )}
-                          </Card>
-                        </motion.div>
-
-                        {/* Mobile Connector Line */}
-                        <div className="flex lg:hidden items-center justify-center">
-                          <div className="h-8 w-1 bg-primary rounded-full" />
+                            </div>
+                          ) : (
+                            <div className="p-8 text-center flex flex-col items-center justify-center">
+                              <motion.div
+                                whileHover={{ rotate: 360 }}
+                                transition={{ duration: 0.6 }}
+                                className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4"
+                              >
+                                <IconComponent className="h-10 w-10 text-primary-foreground" />
+                              </motion.div>
+                              <h2 className="text-xl font-display font-bold text-foreground">{service.title}</h2>
+                            </div>
+                          )}
                         </div>
+                      </motion.div>
 
-                        {/* Content */}
-                        <div className={`w-full lg:flex-1 relative z-10 ${isEven ? 'lg:ml-10' : 'lg:mr-10'}`}>
-                          <Card className={`bg-card border-2 border-primary h-full ${isEven ? 'lg:border-l-0 lg:rounded-l-none' : 'lg:border-r-0 lg:rounded-r-none'}`}>
-                            <CardContent className="p-8">
-                              {!hasImage && (
-                                <h3 className="text-xl font-display font-bold text-foreground mb-4 lg:hidden">{service.title}</h3>
-                              )}
-                              <p className="text-muted-foreground text-lg mb-6 leading-relaxed">
-                                {service.description}
-                              </p>
+                      {/* Thick Vertical Connector Line */}
+                      <div className="w-1.5 h-10 bg-primary rounded-full shadow-md" />
 
-                              {service.how_we_do && (
-                                <h3 className="font-semibold text-primary mb-4">{service.how_we_do}</h3>
-                              )}
+                      {/* Content Card with thick border */}
+                      <div className="w-full relative z-10">
+                        <div className="rounded-2xl border-4 border-primary bg-card shadow-lg overflow-hidden">
+                          <div className="p-6 md:p-8">
+                            <p className="text-muted-foreground text-lg mb-6 leading-relaxed">
+                              {service.description}
+                            </p>
 
-                              {features.length > 0 && (
-                                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                                  {features.map((feature, i) => (
-                                    <motion.li
-                                      key={i}
-                                      initial={{ opacity: 0, x: -10 }}
-                                      whileInView={{ opacity: 1, x: 0 }}
-                                      viewport={{ once: true }}
-                                      transition={{ delay: i * 0.05 }}
-                                      className="flex items-start gap-3 text-muted-foreground"
-                                    >
-                                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                                      <span>{feature}</span>
-                                    </motion.li>
-                                  ))}
-                                </ul>
-                              )}
+                            {service.how_we_do && (
+                              <h3 className="font-semibold text-primary mb-4">{service.how_we_do}</h3>
+                            )}
 
-                              {/* PDF Button for Produção de Conteúdo */}
-                              {showPdfButton && (
-                                <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
-                                  <DialogTrigger asChild>
-                                    <Button variant="outline" className="gap-2">
-                                      <FileText className="h-4 w-4" />
-                                      Ver exemplos de conteúdo
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-4xl max-h-[90vh]">
-                                    <DialogHeader>
-                                      <DialogTitle className="flex items-center gap-2">
-                                        <FileText className="h-5 w-5 text-primary" />
-                                        Exemplos de Produção de Conteúdo
-                                      </DialogTitle>
-                                    </DialogHeader>
-                                    <div className="mt-4">
-                                      <div className="bg-muted rounded-lg p-8 text-center">
-                                        <FileText className="h-16 w-16 text-primary mx-auto mb-4" />
-                                        <p className="text-muted-foreground mb-4">
-                                          Visualize nossos exemplos de produção de conteúdo
-                                        </p>
-                                        <Button asChild className="gap-2">
-                                          <a href="/docs/producao-conteudo.pdf" target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink className="h-4 w-4" />
-                                            Abrir PDF em nova aba
-                                          </a>
-                                        </Button>
-                                      </div>
-                                      {/* PDF Iframe preview */}
-                                      <div className="mt-4 border rounded-lg overflow-hidden bg-white">
-                                        <iframe
-                                          src="/docs/producao-conteudo.pdf"
-                                          className="w-full h-[500px]"
-                                          title="Produção de Conteúdo PDF"
-                                        />
-                                      </div>
+                            {features.length > 0 && (
+                              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                                {features.map((feature, i) => (
+                                  <motion.li
+                                    key={i}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.05 }}
+                                    className="flex items-start gap-3 text-muted-foreground"
+                                  >
+                                    <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
+                                    <span>{feature}</span>
+                                  </motion.li>
+                                ))}
+                              </ul>
+                            )}
+
+                            {/* PDF Button for Produção de Conteúdo */}
+                            {showPdfButton && (
+                              <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
+                                <DialogTrigger asChild>
+                                  <Button variant="outline" className="gap-2">
+                                    <FileText className="h-4 w-4" />
+                                    Ver exemplos de conteúdo
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-4xl max-h-[90vh]">
+                                  <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2">
+                                      <FileText className="h-5 w-5 text-primary" />
+                                      Exemplos de Produção de Conteúdo
+                                    </DialogTitle>
+                                  </DialogHeader>
+                                  <div className="mt-4">
+                                    <div className="bg-muted rounded-lg p-8 text-center">
+                                      <FileText className="h-16 w-16 text-primary mx-auto mb-4" />
+                                      <p className="text-muted-foreground mb-4">
+                                        Visualize nossos exemplos de produção de conteúdo
+                                      </p>
+                                      <Button asChild className="gap-2">
+                                        <a href="/docs/producao-conteudo.pdf" target="_blank" rel="noopener noreferrer">
+                                          <ExternalLink className="h-4 w-4" />
+                                          Abrir PDF em nova aba
+                                        </a>
+                                      </Button>
                                     </div>
-                                  </DialogContent>
-                                </Dialog>
-                              )}
-                            </CardContent>
-                          </Card>
+                                    {/* PDF Iframe preview */}
+                                    <div className="mt-4 border rounded-lg overflow-hidden bg-white">
+                                      <iframe
+                                        src="/docs/producao-conteudo.pdf"
+                                        className="w-full h-[500px]"
+                                        title="Produção de Conteúdo PDF"
+                                      />
+                                    </div>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
