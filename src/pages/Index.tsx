@@ -552,18 +552,18 @@ export default function Index() {
       {/* Quem Somos Section */}
       <section className="py-16 bg-secondary">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             <AnimatedSection direction="left">
-              <div className="relative">
+              <div className="relative flex justify-center lg:justify-start">
                 <motion.div
-                  className="aspect-[4/3] rounded-2xl overflow-hidden shadow-xl"
+                  className="aspect-square w-64 md:w-80 lg:w-96 rounded-2xl overflow-hidden shadow-xl"
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.5 }}
                 >
                   <img
                     src={content.about?.image_url || quemSomosImage}
                     alt="Beth Renz"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-top"
                   />
                 </motion.div>
                 
@@ -572,10 +572,10 @@ export default function Index() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.3 }}
-                  className="absolute -bottom-6 -right-6 bg-primary text-primary-foreground p-6 rounded-2xl shadow-lg"
+                  className="absolute bottom-4 right-4 lg:right-auto lg:left-64 md:lg:left-72 lg:left-80 bg-primary text-primary-foreground p-4 md:p-6 rounded-2xl shadow-lg"
                 >
-                  <div className="text-4xl font-display font-bold">25+</div>
-                  <div className="text-sm opacity-90">Anos de experiência</div>
+                  <div className="text-3xl md:text-4xl font-display font-bold">25+</div>
+                  <div className="text-xs md:text-sm opacity-90">Anos de experiência</div>
                 </motion.div>
               </div>
             </AnimatedSection>
