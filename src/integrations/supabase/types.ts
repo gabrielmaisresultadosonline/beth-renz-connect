@@ -170,6 +170,7 @@ export type Database = {
           created_at: string
           display_order: number | null
           id: string
+          image_position: string | null
           image_url: string
           link: string | null
           title: string | null
@@ -179,6 +180,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
+          image_position?: string | null
           image_url: string
           link?: string | null
           title?: string | null
@@ -188,6 +190,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
+          image_position?: string | null
           image_url?: string
           link?: string | null
           title?: string | null

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Image, Loader2 } from 'lucide-react';
@@ -26,6 +27,7 @@ interface HomepageSlide {
   link: string | null;
   display_order: number;
   active: boolean;
+  image_position: string | null;
 }
 
 export default function AdminHomepage() {
@@ -40,6 +42,7 @@ export default function AdminHomepage() {
     title: '',
     link: '',
     active: true,
+    image_position: 'center',
   });
   const { toast } = useToast();
 
@@ -86,6 +89,7 @@ export default function AdminHomepage() {
       title: slideForm.title || null,
       link: slideForm.link || null,
       active: slideForm.active,
+      image_position: slideForm.image_position,
       display_order: editingSlide?.display_order ?? slides.length,
     };
 
@@ -117,7 +121,7 @@ export default function AdminHomepage() {
   };
 
   const resetSlideForm = () => {
-    setSlideForm({ image_url: '', title: '', link: '', active: true });
+    setSlideForm({ image_url: '', title: '', link: '', active: true, image_position: 'center' });
     setEditingSlide(null);
   };
 
@@ -128,6 +132,7 @@ export default function AdminHomepage() {
       title: slide.title || '',
       link: slide.link || '',
       active: slide.active,
+      image_position: slide.image_position || 'center',
     });
     setDialogOpen(true);
   };
@@ -227,6 +232,25 @@ export default function AdminHomepage() {
                       onChange={(e) => setSlideForm({ ...slideForm, link: e.target.value })}
                       placeholder="https://... ou /press-releases/id"
                     />
+                  </div>
+                  <div>
+                    <Label>Posição da Imagem</Label>
+                    <Select
+                      value={slideForm.image_position}
+                      onValueChange={(value) => setSlideForm({ ...slideForm, image_position: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Posição vertical" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="top">Topo</SelectItem>
+                        <SelectItem value="center">Centro</SelectItem>
+                        <SelectItem value="bottom">Embaixo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ajusta qual parte da imagem fica visível
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch
