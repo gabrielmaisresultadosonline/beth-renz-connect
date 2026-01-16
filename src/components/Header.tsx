@@ -115,11 +115,16 @@ export function Header() {
             ))}
           </nav>
 
-          {/* CTA Button */}
+          {/* CTA Buttons */}
           {showCta && (
-            <div className="hidden xl:block">
+            <div className="hidden xl:flex items-center gap-3">
+              <Button asChild variant="outline" className="font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                <a href="https://slnegociosecia.com.br/" target="_blank" rel="noopener noreferrer">
+                  PORTAL São Leopoldo
+                </a>
+              </Button>
               <Button asChild className="shine font-semibold">
-                <Link to="/contato">Fale com a Imprensa</Link>
+                <Link to="/contato">Fale conosco</Link>
               </Button>
             </div>
           )}
@@ -193,11 +198,16 @@ export function Header() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: navItems.length * 0.05 }}
-                    className="px-4 pt-4"
+                    className="px-4 pt-4 space-y-3"
                   >
+                    <Button asChild variant="outline" className="w-full font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                      <a href="https://slnegociosecia.com.br/" target="_blank" rel="noopener noreferrer" onClick={() => setIsMenuOpen(false)}>
+                        PORTAL São Leopoldo
+                      </a>
+                    </Button>
                     <Button asChild className="w-full shine font-semibold">
                       <Link to="/contato" onClick={() => setIsMenuOpen(false)}>
-                        Fale com a Imprensa
+                        Fale conosco
                       </Link>
                     </Button>
                   </motion.div>
