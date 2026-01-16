@@ -118,8 +118,8 @@ export default function Solucoes() {
                   <AnimatedSection key={service.id} delay={index * 0.1}>
                     {/* Single unified container with continuous border */}
                     <div className="rounded-2xl border-4 border-primary bg-card shadow-lg overflow-hidden">
-                      {/* Flex container - vertical on mobile (image top), horizontal on desktop (content left, image right) */}
-                      <div className="flex flex-col-reverse lg:flex-row">
+                      {/* Flex container - vertical on mobile (image top), horizontal on desktop (image left, content right) */}
+                      <div className="flex flex-col lg:flex-row">
                         {/* Image Section - clean without overlay */}
                         <motion.div 
                           className="w-full lg:w-2/5 flex-shrink-0 bg-gradient-to-br from-primary/10 to-primary/5"
