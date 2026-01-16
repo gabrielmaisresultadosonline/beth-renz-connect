@@ -118,12 +118,12 @@ export function Header() {
           {/* CTA Buttons */}
           {showCta && (
             <div className="hidden xl:flex items-center gap-3">
-              <Button asChild variant="outline" className="font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+              <Button asChild className="font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25 border-0">
                 <a href="https://slnegociosecia.com.br/" target="_blank" rel="noopener noreferrer">
                   PORTAL São Leopoldo
                 </a>
               </Button>
-              <Button asChild className="shine font-semibold">
+              <Button asChild variant="outline" className="font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground">
                 <Link to="/contato">Fale conosco</Link>
               </Button>
             </div>
@@ -200,12 +200,12 @@ export function Header() {
                     transition={{ delay: navItems.length * 0.05 }}
                     className="px-4 pt-4 space-y-3"
                   >
-                    <Button asChild variant="outline" className="w-full font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                    <Button asChild className="w-full font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25 border-0">
                       <a href="https://slnegociosecia.com.br/" target="_blank" rel="noopener noreferrer" onClick={() => setIsMenuOpen(false)}>
                         PORTAL São Leopoldo
                       </a>
                     </Button>
-                    <Button asChild className="w-full shine font-semibold">
+                    <Button asChild variant="outline" className="w-full font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground">
                       <Link to="/contato" onClick={() => setIsMenuOpen(false)}>
                         Fale conosco
                       </Link>
