@@ -66,7 +66,7 @@ export function Footer() {
             <h4 className="font-display font-semibold text-background mb-4">Redes Sociais</h4>
             <div className="flex gap-3 mb-6">
               <a
-                href="https://linkedin.com"
+                href="https://www.linkedin.com/in/elizabethrenz/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-full bg-background/10 hover:bg-primary hover:text-primary-foreground transition-colors"
@@ -74,7 +74,7 @@ export function Footer() {
                 <Linkedin className="h-5 w-5" />
               </a>
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/bethrenz/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-full bg-background/10 hover:bg-primary hover:text-primary-foreground transition-colors"
@@ -82,7 +82,7 @@ export function Footer() {
                 <Instagram className="h-5 w-5" />
               </a>
               <a
-                href="https://facebook.com"
+                href="https://www.facebook.com/elizabeth.renz.3"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-full bg-background/10 hover:bg-primary hover:text-primary-foreground transition-colors"
@@ -90,7 +90,7 @@ export function Footer() {
                 <Facebook className="h-5 w-5" />
               </a>
               <a
-                href="https://youtube.com"
+                href="https://www.youtube.com/@BetheCiapodcast"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-full bg-background/10 hover:bg-primary hover:text-primary-foreground transition-colors"
