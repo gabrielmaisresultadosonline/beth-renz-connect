@@ -20,7 +20,8 @@ import {
   LayoutDashboard,
   UserCircle,
   Briefcase,
-  Play
+  Play,
+  Send
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
@@ -34,6 +35,7 @@ const navItems = [
   { title: 'Quem Somos', icon: UserCircle, href: '/admin/equipe' },
   { title: 'Serviços', icon: Briefcase, href: '/admin/servicos' },
   { title: 'Mensagens', icon: Mail, href: '/admin/mensagens' },
+  { title: 'Email', icon: Send, href: '/admin/email' },
   { title: 'Página Inicial', icon: Home, href: '/admin/homepage' },
   { title: 'Textos do Site', icon: Settings, href: '/admin/config' },
   { title: 'Config. Gerais', icon: Settings, href: '/admin/site-settings' },

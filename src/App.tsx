@@ -31,6 +31,7 @@ import AdminEquipe from "./pages/admin/AdminEquipe";
 import AdminServicos from "./pages/admin/AdminServicos";
 import AdminSiteSettings from "./pages/admin/AdminSiteSettings";
 import AdminHomepage from "./pages/admin/AdminHomepage";
+import AdminEmail from "./pages/admin/AdminEmail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,7 @@ function AppContent() {
       <Route path="/admin/servicos" element={<AdminServicos />} />
       <Route path="/admin/site-settings" element={<AdminSiteSettings />} />
       <Route path="/admin/homepage" element={<AdminHomepage />} />
+      <Route path="/admin/email" element={<AdminEmail />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
