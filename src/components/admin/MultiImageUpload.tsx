@@ -51,7 +51,7 @@ export function MultiImageUpload({
         const filePath = `${folder}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('images')
+          .from('media')
           .upload(filePath, file);
 
         if (uploadError) {
@@ -60,7 +60,7 @@ export function MultiImageUpload({
         }
 
         const { data: urlData } = supabase.storage
-          .from('images')
+          .from('media')
           .getPublicUrl(filePath);
 
         uploadedUrls.push(urlData.publicUrl);

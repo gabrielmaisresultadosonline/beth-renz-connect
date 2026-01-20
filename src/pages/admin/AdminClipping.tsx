@@ -73,13 +73,13 @@ export default function AdminClipping() {
       const filePath = `clipping-pdfs/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('images')
+        .from('media')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('images')
+        .from('media')
         .getPublicUrl(filePath);
 
       setFormData({ ...formData, pdf_url: urlData.publicUrl });
