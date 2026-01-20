@@ -296,6 +296,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sent_emails: {
+        Row: {
+          attachments: Json | null
+          bcc_addresses: string[] | null
+          body_html: string
+          cc_addresses: string[] | null
+          id: string
+          sent_at: string
+          sent_by: string | null
+          subject: string
+          to_addresses: string[]
+        }
+        Insert: {
+          attachments?: Json | null
+          bcc_addresses?: string[] | null
+          body_html: string
+          cc_addresses?: string[] | null
+          id?: string
+          sent_at?: string
+          sent_by?: string | null
+          subject: string
+          to_addresses: string[]
+        }
+        Update: {
+          attachments?: Json | null
+          bcc_addresses?: string[] | null
+          body_html?: string
+          cc_addresses?: string[] | null
+          id?: string
+          sent_at?: string
+          sent_by?: string | null
+          subject?: string
+          to_addresses?: string[]
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           active: boolean | null
