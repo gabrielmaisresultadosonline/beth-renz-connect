@@ -182,7 +182,7 @@ export default function Index() {
   return (
     <Layout>
       {/* Main Content - Portal Style */}
-      <main className="pt-24 pb-16 bg-background">
+      <main className="pt-4 md:pt-24 pb-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
