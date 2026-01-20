@@ -48,9 +48,11 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string
+          gallery_images: string[] | null
           id: string
           image_url: string | null
           link: string | null
+          pdf_url: string | null
           published_at: string | null
           source: string | null
           title: string
@@ -58,9 +60,11 @@ export type Database = {
         Insert: {
           content?: string | null
           created_at?: string
+          gallery_images?: string[] | null
           id?: string
           image_url?: string | null
           link?: string | null
+          pdf_url?: string | null
           published_at?: string | null
           source?: string | null
           title: string
@@ -68,9 +72,11 @@ export type Database = {
         Update: {
           content?: string | null
           created_at?: string
+          gallery_images?: string[] | null
           id?: string
           image_url?: string | null
           link?: string | null
+          pdf_url?: string | null
           published_at?: string | null
           source?: string | null
           title?: string
