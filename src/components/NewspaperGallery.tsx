@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, Move } from 'lucide-react';
 
 interface NewspaperGalleryProps {
   images: string[];
@@ -13,15 +13,30 @@ interface NewspaperGalleryProps {
 export function NewspaperGallery({ images, isOpen, onClose, title }: NewspaperGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Reset position when zoom or image changes
+  useEffect(() => {
+    setPosition({ x: 0, y: 0 });
+  }, [currentIndex]);
+
+  const resetPosition = () => {
+    setPosition({ x: 0, y: 0 });
+  };
 
   const goToPrevious = useCallback(() => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
     setZoom(1);
+    resetPosition();
   }, [images.length]);
 
   const goToNext = useCallback(() => {
     setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
     setZoom(1);
+    resetPosition();
   }, [images.length]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -30,8 +45,67 @@ export function NewspaperGallery({ images, isOpen, onClose, title }: NewspaperGa
     if (e.key === 'Escape') onClose();
   }, [goToPrevious, goToNext, onClose]);
 
-  const zoomIn = () => setZoom((prev) => Math.min(prev + 0.5, 3));
-  const zoomOut = () => setZoom((prev) => Math.max(prev - 0.5, 0.5));
+  const zoomIn = () => {
+    setZoom((prev) => Math.min(prev + 0.5, 3));
+  };
+  
+  const zoomOut = () => {
+    const newZoom = Math.max(zoom - 0.5, 0.5);
+    setZoom(newZoom);
+    if (newZoom <= 1) {
+      resetPosition();
+    }
+  };
+
+  // Mouse drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoom > 1) {
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && zoom > 1) {
+      e.preventDefault();
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (zoom > 1 && e.touches.length === 1) {
+      const touch = e.touches[0];
+      setIsDragging(true);
+      setDragStart({ x: touch.clientX - position.x, y: touch.clientY - position.y });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging && zoom > 1 && e.touches.length === 1) {
+      const touch = e.touches[0];
+      setPosition({
+        x: touch.clientX - dragStart.x,
+        y: touch.clientY - dragStart.y,
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
 
   if (images.length === 0) return null;
 
@@ -83,15 +157,38 @@ export function NewspaperGallery({ images, isOpen, onClose, title }: NewspaperGa
         </div>
 
         {/* Image Container */}
-        <div className="flex items-center justify-center h-full overflow-auto p-12">
+        <div 
+          ref={containerRef}
+          className={`flex items-center justify-center h-full overflow-hidden p-12 ${
+            zoom > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
+          }`}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <img
             src={images[currentIndex]}
             alt={`Página ${currentIndex + 1}`}
-            className="max-w-full max-h-full object-contain transition-transform duration-200"
-            style={{ transform: `scale(${zoom})` }}
+            className="max-w-full max-h-full object-contain transition-transform duration-200 select-none"
+            style={{ 
+              transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+              transformOrigin: 'center center'
+            }}
             draggable={false}
           />
         </div>
+
+        {/* Zoom hint when zoomed */}
+        {zoom > 1 && (
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2 pointer-events-none">
+            <Move className="h-4 w-4" />
+            Arraste para mover a imagem
+          </div>
+        )}
 
         {/* Navigation Arrows */}
         {images.length > 1 && (
