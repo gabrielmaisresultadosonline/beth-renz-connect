@@ -59,7 +59,23 @@ export default function Clipping() {
   };
 
   const hasGallery = (clip: ClippingItem) => {
-    return (clip.gallery_images && clip.gallery_images.length > 0) || clip.image_url;
+    return (clip.gallery_images && clip.gallery_images.length > 0);
+  };
+
+  const hasOnlyLink = (clip: ClippingItem) => {
+    return clip.link && !hasGallery(clip);
+  };
+
+  const handleImageClick = (clip: ClippingItem) => {
+    if (hasGallery(clip)) {
+      openGallery(clip);
+    } else if (clip.link) {
+      window.open(clip.link, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const isClickable = (clip: ClippingItem) => {
+    return hasGallery(clip) || clip.link;
   };
 
   return (
@@ -86,8 +102,8 @@ export default function Clipping() {
                 >
                   {/* Cover Image */}
                   <div 
-                    className={`aspect-video overflow-hidden relative ${hasGallery(clip) ? 'cursor-pointer' : ''}`}
-                    onClick={() => hasGallery(clip) && openGallery(clip)}
+                    className={`aspect-video overflow-hidden relative ${isClickable(clip) ? 'cursor-pointer' : ''}`}
+                    onClick={() => handleImageClick(clip)}
                   >
                     {clip.image_url ? (
                       <>
@@ -96,12 +112,21 @@ export default function Clipping() {
                           alt={clip.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        {/* Gallery Indicator Overlay */}
-                        {hasGallery(clip) && (
+                        {/* Overlay */}
+                        {isClickable(clip) && (
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                             <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-2 text-white">
-                              <Eye className="h-8 w-8" />
-                              <span className="text-sm font-medium">Ver completo</span>
+                              {hasGallery(clip) ? (
+                                <>
+                                  <Eye className="h-8 w-8" />
+                                  <span className="text-sm font-medium">Ver completo</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ExternalLink className="h-8 w-8" />
+                                  <span className="text-sm font-medium">Acessar online</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         )}
@@ -143,7 +168,8 @@ export default function Clipping() {
                       )}
                     </div>
 
-                    <div className="flex flex-wrap gap-2 mt-4">
+                    <div className="flex flex-wrap items-center gap-2 mt-4">
+                      {/* Ver Jornal - só aparece se tiver galeria de imagens */}
                       {hasGallery(clip) && (
                         <Button
                           size="sm"
@@ -155,31 +181,18 @@ export default function Clipping() {
                           Ver Jornal
                         </Button>
                       )}
-                      
-                      {clip.pdf_url && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          asChild
-                        >
-                          <a href={clip.pdf_url} target="_blank" rel="noopener noreferrer">
-                            <FileText className="h-4 w-4 mr-1" />
-                            PDF
-                          </a>
-                        </Button>
-                      )}
 
+                      {/* Online - só aparece se tiver link */}
                       {clip.link && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          asChild
+                        <a 
+                          href={clip.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
                         >
-                          <a href={clip.link} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4 mr-1" />
-                            Online
-                          </a>
-                        </Button>
+                          <ExternalLink className="h-4 w-4" />
+                          Online
+                        </a>
                       )}
                     </div>
                   </CardContent>
