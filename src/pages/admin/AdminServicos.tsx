@@ -83,13 +83,13 @@ export default function AdminServicos() {
       const filePath = `services/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('uploads')
+        .from('media')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('uploads')
+        .from('media')
         .getPublicUrl(filePath);
 
       setForm({ ...form, image_url: publicUrl });
