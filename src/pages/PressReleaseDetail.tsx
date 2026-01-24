@@ -17,10 +17,11 @@ interface PressRelease {
   image_url: string | null;
   published_at: string | null;
   created_at: string;
+  slug: string | null;
 }
 
 export default function PressReleaseDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [release, setRelease] = useState<PressRelease | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,18 +29,30 @@ export default function PressReleaseDetail() {
 
   useEffect(() => {
     const fetchRelease = async () => {
-      if (!id) return;
+      if (!slug) return;
 
-      const { data, error } = await supabase
+      // Try to find by slug first, then by id (for backwards compatibility)
+      let { data, error } = await supabase
         .from('press_releases')
         .select('*')
-        .eq('id', id)
+        .eq('slug', slug)
         .eq('published', true)
         .single();
 
+      // If not found by slug, try by id (backwards compatibility)
       if (error || !data) {
-        navigate('/press-releases');
-        return;
+        const { data: dataById, error: errorById } = await supabase
+          .from('press_releases')
+          .select('*')
+          .eq('id', slug)
+          .eq('published', true)
+          .single();
+        
+        if (errorById || !dataById) {
+          navigate('/press-releases');
+          return;
+        }
+        data = dataById;
       }
 
       setRelease(data);
@@ -47,9 +60,9 @@ export default function PressReleaseDetail() {
       // Fetch related releases
       const { data: related } = await supabase
         .from('press_releases')
-        .select('id, title, image_url, published_at')
+        .select('id, title, image_url, published_at, slug')
         .eq('published', true)
-        .neq('id', id)
+        .neq('id', data.id)
         .order('published_at', { ascending: false })
         .limit(3);
 
@@ -62,7 +75,7 @@ export default function PressReleaseDetail() {
 
     fetchRelease();
     window.scrollTo(0, 0);
-  }, [id, navigate]);
+  }, [slug, navigate]);
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
 
@@ -248,7 +261,7 @@ export default function PressReleaseDetail() {
                 {relatedReleases.map((related) => (
                   <Link
                     key={related.id}
-                    to={`/press-releases/${related.id}`}
+                    to={`/press-releases/${related.slug || related.id}`}
                     className="group block bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                   >
                     {related.image_url && (

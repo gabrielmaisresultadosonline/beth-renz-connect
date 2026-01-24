@@ -19,6 +19,7 @@ interface PressRelease {
   pinned: boolean | null;
   show_date: boolean | null;
   display_order: number | null;
+  slug: string | null;
 }
 
 export default function PressReleases() {
@@ -95,7 +96,7 @@ export default function PressReleases() {
           ) : filteredReleases.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredReleases.map((release) => (
-                <Link key={release.id} to={`/press-releases/${release.id}`}>
+                <Link key={release.id} to={`/press-releases/${release.slug || release.id}`}>
                   <Card className="group h-full bg-card border-border hover:shadow-card hover:border-primary/30 transition-all duration-300 cursor-pointer overflow-hidden">
                     {release.image_url && (
                       <div className="aspect-video overflow-hidden">
