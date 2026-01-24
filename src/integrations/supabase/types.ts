@@ -244,6 +244,7 @@ export type Database = {
           published: boolean | null
           published_at: string | null
           show_date: boolean | null
+          slug: string | null
           summary: string | null
           title: string
         }
@@ -257,6 +258,7 @@ export type Database = {
           published?: boolean | null
           published_at?: string | null
           show_date?: boolean | null
+          slug?: string | null
           summary?: string | null
           title: string
         }
@@ -270,6 +272,7 @@ export type Database = {
           published?: boolean | null
           published_at?: string | null
           show_date?: boolean | null
+          slug?: string | null
           summary?: string | null
           title?: string
         }
@@ -482,6 +485,7 @@ export type Database = {
     }
     Functions: {
       bootstrap_first_admin: { Args: { p_email: string }; Returns: undefined }
+      generate_slug: { Args: { title: string }; Returns: string }
       is_current_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
