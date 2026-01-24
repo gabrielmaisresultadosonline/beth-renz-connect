@@ -1,8 +1,6 @@
 import { Layout } from '@/components/Layout';
 import { PageHero } from '@/components/PageHero';
 import { AnimatedSection } from '@/components/AnimatedSection';
-import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -24,7 +22,6 @@ import {
   FileText,
   ExternalLink
 } from 'lucide-react';
-import { useState } from 'react';
 
 // Map of icon names to components
 const iconMap: Record<string, LucideIcon> = {
@@ -54,7 +51,6 @@ interface Service {
 }
 
 export default function Solucoes() {
-  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
 
   const {
     data: services,
@@ -120,13 +116,18 @@ export default function Solucoes() {
                     <div className="rounded-2xl border-4 border-primary bg-card shadow-lg overflow-hidden">
                       {/* Flex container - vertical on mobile (image top), horizontal on desktop (image left, content right) */}
                       <div className="flex flex-col lg:flex-row">
-                        {/* Image Section - clean without overlay */}
+                        {/* Image Section - clickable for PDF services */}
                         <motion.div 
-                          className="w-full lg:w-2/5 flex-shrink-0 bg-gradient-to-br from-primary/10 to-primary/5"
+                          className={`w-full lg:w-2/5 flex-shrink-0 bg-gradient-to-br from-primary/10 to-primary/5 ${showPdfButton ? 'cursor-pointer' : ''}`}
                           whileHover={{ scale: 1.01 }}
+                          onClick={() => {
+                            if (showPdfButton) {
+                              window.open('/docs/producao-conteudo.pdf', '_blank', 'noopener,noreferrer');
+                            }
+                          }}
                         >
                           {hasImage ? (
-                            <div className="h-full">
+                            <div className="h-full relative group">
                               <div className="aspect-[4/3] lg:aspect-auto lg:h-full w-full">
                                 <img 
                                   src={service.image_url!} 
@@ -134,6 +135,14 @@ export default function Solucoes() {
                                   className="w-full h-full object-cover bg-muted/30"
                                 />
                               </div>
+                              {showPdfButton && (
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-lg px-4 py-2 flex items-center gap-2 shadow-lg">
+                                    <ExternalLink className="h-5 w-5 text-primary" />
+                                    <span className="font-medium text-foreground">Abrir PDF</span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="p-8 text-center h-full flex flex-col items-center justify-center min-h-[200px] lg:min-h-[300px] bg-gradient-to-br from-primary/20 to-primary/5">
@@ -182,39 +191,14 @@ export default function Solucoes() {
 
                           {/* PDF Button for Produção de Conteúdo */}
                           {showPdfButton && (
-                            <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" className="gap-2 w-fit">
-                                  <FileText className="h-4 w-4" />
-                                  Ver exemplos de conteúdo
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-4xl max-h-[90vh]">
-                                <DialogHeader>
-                                  <DialogTitle className="flex items-center gap-2">
-                                    <FileText className="h-5 w-5 text-primary" />
-                                    Exemplos de Produção de Conteúdo
-                                  </DialogTitle>
-                                </DialogHeader>
-                                <div className="mt-4">
-                                  <div className="bg-muted rounded-lg p-8 text-center">
-                                    <FileText className="h-16 w-16 text-primary mx-auto mb-4" />
-                                    <p className="text-muted-foreground mb-4">
-                                      Visualize nossos exemplos de produção de conteúdo
-                                    </p>
-                                    <p className="text-sm text-muted-foreground/70 mb-4">
-                                      Clique no botão abaixo para abrir o PDF com nossos trabalhos
-                                    </p>
-                                    <Button asChild className="gap-2">
-                                      <a href="/docs/producao-conteudo.pdf" target="_blank" rel="noopener noreferrer">
-                                        <ExternalLink className="h-4 w-4" />
-                                        Abrir PDF em nova aba
-                                      </a>
-                                    </Button>
-                                  </div>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
+                            <Button 
+                              variant="outline" 
+                              className="gap-2 w-fit"
+                              onClick={() => window.open('/docs/producao-conteudo.pdf', '_blank', 'noopener,noreferrer')}
+                            >
+                              <FileText className="h-4 w-4" />
+                              Ver exemplos de conteúdo
+                            </Button>
                           )}
                         </div>
                       </div>
