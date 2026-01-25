@@ -118,9 +118,10 @@ export function Header() {
           {/* CTA Buttons */}
           {showCta && (
             <div className="hidden xl:flex items-center gap-2">
-              <Button asChild size="sm" className="text-xs font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25 border-0 px-3 py-1.5 h-auto">
+              <Button asChild size="sm" className="text-xs font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25 border-0 px-3 py-1.5 h-auto whitespace-normal text-center leading-tight">
                 <a href="https://slnegociosecia.com.br/" target="_blank" rel="noopener noreferrer">
-                  PORTAL São Leopoldo
+                  <span className="block">Portal São Leopoldo</span>
+                  <span className="block">Negócios & Cia</span>
                 </a>
               </Button>
               <Button asChild variant="outline" size="sm" className="text-xs font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground px-3 py-1.5 h-auto">
@@ -202,7 +203,7 @@ export function Header() {
                   >
                     <Button asChild className="w-full font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25 border-0">
                       <a href="https://slnegociosecia.com.br/" target="_blank" rel="noopener noreferrer" onClick={() => setIsMenuOpen(false)}>
-                        PORTAL São Leopoldo
+                        Portal São Leopoldo Negócios & Cia
                       </a>
                     </Button>
                     <Button asChild variant="outline" className="w-full font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground">
