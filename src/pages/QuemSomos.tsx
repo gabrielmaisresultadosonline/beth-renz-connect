@@ -149,69 +149,42 @@ export default function QuemSomos() {
                     )}
                     <div className="text-muted-foreground space-y-3 whitespace-pre-line">
                       {member.bio.split('\n\n').map((paragraph, i) => {
-                        // Convert specific text to links with visible URL
-                        let processedText = paragraph;
-                        
-                        // Replace "São Leopoldo Negócios & Cia" with clickable link + visible URL
-                        if (processedText.includes('São Leopoldo Negócios & Cia')) {
-                          const parts = processedText.split(/(São Leopoldo Negócios & Cia)/);
-                          return (
-                            <p key={i}>
-                              {parts.map((part, j) => 
-                                part === 'São Leopoldo Negócios & Cia' ? (
-                                  <span key={j}>
-                                    <a 
-                                      href="https://slnegociosecia.com.br/" 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-primary hover:underline"
-                                    >
-                                      {part}
-                                    </a>
-                                    <span className="text-primary"> (</span>
-                                    <a 
-                                      href="https://slnegociosecia.com.br/" 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-primary hover:underline"
-                                    >
-                                      https://slnegociosecia.com.br/
-                                    </a>
-                                    <span className="text-primary">)</span>
-                                  </span>
-                                ) : (
-                                  <span key={j}>{part}</span>
-                                )
-                              )}
-                            </p>
+                        // Function to render text with multiple links
+                        const renderWithLinks = (text: string) => {
+                          // Define links to convert
+                          const linkPatterns = [
+                            { pattern: 'Beth Renz Imprensa & Relacionamento', url: 'https://bethrenz.com.br/' },
+                            { pattern: 'São Leopoldo Negócios & Cia', url: 'https://slnegociosecia.com.br/' },
+                          ];
+                          
+                          // Create regex pattern to match any of the link patterns
+                          const combinedPattern = new RegExp(
+                            `(${linkPatterns.map(l => l.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+                            'g'
                           );
-                        }
+                          
+                          const parts = text.split(combinedPattern);
+                          
+                          return parts.map((part, j) => {
+                            const linkInfo = linkPatterns.find(l => l.pattern === part);
+                            if (linkInfo) {
+                              return (
+                                <a 
+                                  key={j}
+                                  href={linkInfo.url}
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline"
+                                >
+                                  {part}
+                                </a>
+                              );
+                            }
+                            return <span key={j}>{part}</span>;
+                          });
+                        };
                         
-                        // Replace "Negócios & Cia" standalone with clickable link
-                        if (processedText.includes('Negócios & Cia') && !processedText.includes('São Leopoldo Negócios & Cia')) {
-                          const parts = processedText.split(/(Negócios & Cia)/);
-                          return (
-                            <p key={i}>
-                              {parts.map((part, j) => 
-                                part === 'Negócios & Cia' ? (
-                                  <a 
-                                    key={j}
-                                    href="https://slnegociosecia.com.br/" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:underline"
-                                  >
-                                    {part}
-                                  </a>
-                                ) : (
-                                  <span key={j}>{part}</span>
-                                )
-                              )}
-                            </p>
-                          );
-                        }
-                        
-                        return <p key={i}>{processedText}</p>;
+                        return <p key={i}>{renderWithLinks(paragraph)}</p>;
                       })}
                     </div>
                   </div>
