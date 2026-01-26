@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Pin, Calendar, CalendarOff, Settings } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Pin, Calendar, CalendarOff, Settings, Link2, Pencil as EditIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { RichEditor } from '@/components/admin/RichEditor';
 import { ImageUpload } from '@/components/admin/ImageUpload';
@@ -17,6 +17,7 @@ import { ImageUpload } from '@/components/admin/ImageUpload';
 interface PressRelease {
   id: string;
   title: string;
+  slug: string | null;
   summary: string | null;
   content: string;
   image_url: string | null;
@@ -28,6 +29,18 @@ interface PressRelease {
   show_date: boolean | null;
 }
 
+// Função para gerar slug a partir do título
+const generateSlug = (title: string): string => {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/[^a-z0-9\s-]/g, '') // Remove caracteres especiais
+    .trim()
+    .replace(/\s+/g, '-') // Substitui espaços por hífens
+    .replace(/-+/g, '-'); // Remove hífens duplicados
+};
+
 export default function AdminPressReleases() {
   const [items, setItems] = useState<PressRelease[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +50,7 @@ export default function AdminPressReleases() {
   const [homepageLimit, setHomepageLimit] = useState(5);
   const [formData, setFormData] = useState({
     title: '',
+    slug: '',
     summary: '',
     content: '',
     image_url: '',
@@ -45,6 +59,7 @@ export default function AdminPressReleases() {
     show_date: true,
     pinned: false,
   });
+  const [customSlug, setCustomSlug] = useState(false);
   const { toast } = useToast();
 
   const fetchItems = async () => {
@@ -112,8 +127,11 @@ export default function AdminPressReleases() {
       publishedAt = new Date().toISOString();
     }
     
+    const slugValue = customSlug && formData.slug ? formData.slug : generateSlug(formData.title);
+    
     const payload = {
       title: formData.title,
+      slug: slugValue,
       summary: formData.summary || null,
       content: formData.content,
       image_url: formData.image_url || null,
@@ -211,6 +229,7 @@ export default function AdminPressReleases() {
   const resetForm = () => {
     setFormData({ 
       title: '', 
+      slug: '',
       summary: '', 
       content: '', 
       image_url: '', 
@@ -220,12 +239,14 @@ export default function AdminPressReleases() {
       pinned: false,
     });
     setEditingItem(null);
+    setCustomSlug(false);
   };
 
   const openEdit = (item: PressRelease) => {
     setEditingItem(item);
     setFormData({
       title: item.title,
+      slug: item.slug || '',
       summary: item.summary || '',
       content: item.content,
       image_url: item.image_url || '',
@@ -234,6 +255,7 @@ export default function AdminPressReleases() {
       show_date: item.show_date ?? true,
       pinned: item.pinned || false,
     });
+    setCustomSlug(!!item.slug);
     setDialogOpen(true);
   };
 
@@ -292,10 +314,49 @@ export default function AdminPressReleases() {
                     <Label>Título *</Label>
                     <Input 
                       value={formData.title} 
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
+                      onChange={(e) => {
+                        setFormData({ ...formData, title: e.target.value });
+                        if (!customSlug) {
+                          setFormData(prev => ({ ...prev, title: e.target.value, slug: generateSlug(e.target.value) }));
+                        }
+                      }} 
                       required 
                       placeholder="Título do press release"
                     />
+                    {/* Preview do slug/URL */}
+                    <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
+                          <Link2 className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">
+                            /press-releases/<span className="text-foreground font-medium">{customSlug && formData.slug ? formData.slug : generateSlug(formData.title) || 'titulo-do-release'}</span>
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => {
+                            if (!customSlug) {
+                              setFormData(prev => ({ ...prev, slug: generateSlug(prev.title) }));
+                            }
+                            setCustomSlug(!customSlug);
+                          }}
+                        >
+                          <EditIcon className="h-3 w-3 mr-1" />
+                          {customSlug ? 'Auto' : 'Editar'}
+                        </Button>
+                      </div>
+                      {customSlug && (
+                        <Input
+                          value={formData.slug}
+                          onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') })}
+                          placeholder="slug-personalizado"
+                          className="mt-2 h-8 text-sm"
+                        />
+                      )}
+                    </div>
                   </div>
                   <div>
                     <Label>Resumo (opcional)</Label>
