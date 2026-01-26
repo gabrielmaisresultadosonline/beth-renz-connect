@@ -268,6 +268,11 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
         .from('media')
         .getPublicUrl(filePath);
 
+      toast({ 
+        title: 'Upload concluído', 
+        description: `Arquivo salvo como: ${fileName}` 
+      });
+      
       return publicUrl;
     } catch (error: any) {
       toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
