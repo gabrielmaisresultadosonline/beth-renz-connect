@@ -13,6 +13,7 @@ import { Plus, Pencil, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Pin, Calendar, C
 import { format } from 'date-fns';
 import { RichEditor } from '@/components/admin/RichEditor';
 import { ImageUpload } from '@/components/admin/ImageUpload';
+import { DraggableImagePosition } from '@/components/admin/DraggableImagePosition';
 
 interface PressRelease {
   id: string;
@@ -21,6 +22,7 @@ interface PressRelease {
   summary: string | null;
   content: string;
   image_url: string | null;
+  image_position: string | null;
   published: boolean | null;
   published_at: string | null;
   created_at: string;
@@ -54,6 +56,7 @@ export default function AdminPressReleases() {
     summary: '',
     content: '',
     image_url: '',
+    image_position: 50,
     published: false,
     published_at: '',
     show_date: true,
@@ -135,6 +138,7 @@ export default function AdminPressReleases() {
       summary: formData.summary || null,
       content: formData.content,
       image_url: formData.image_url || null,
+      image_position: formData.image_position.toString(),
       published: formData.published,
       published_at: publishedAt,
       show_date: formData.show_date,
@@ -233,6 +237,7 @@ export default function AdminPressReleases() {
       summary: '', 
       content: '', 
       image_url: '', 
+      image_position: 50,
       published: false,
       published_at: '',
       show_date: true,
@@ -250,6 +255,7 @@ export default function AdminPressReleases() {
       summary: item.summary || '',
       content: item.content,
       image_url: item.image_url || '',
+      image_position: parseInt(item.image_position || '50'),
       published: item.published || false,
       published_at: item.published_at ? item.published_at.slice(0, 16) : '',
       show_date: item.show_date ?? true,
@@ -384,6 +390,17 @@ export default function AdminPressReleases() {
                     folder="press-releases"
                   />
                   
+                  {/* Posicionamento da imagem */}
+                  {formData.image_url && (
+                    <div className="space-y-2">
+                      <Label className="text-sm">Posição da Imagem</Label>
+                      <DraggableImagePosition
+                        imageUrl={formData.image_url}
+                        position={formData.image_position}
+                        onChange={(pos) => setFormData({ ...formData, image_position: pos })}
+                      />
+                    </div>
+                  )}
                   <div className="space-y-3 p-4 bg-secondary/30 rounded-lg">
                     <div className="flex items-center gap-3">
                       <Switch 

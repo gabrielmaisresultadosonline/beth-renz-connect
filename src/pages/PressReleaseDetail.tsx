@@ -15,6 +15,7 @@ interface PressRelease {
   summary: string | null;
   content: string;
   image_url: string | null;
+  image_position: string | null;
   published_at: string | null;
   created_at: string;
   slug: string | null;
@@ -125,6 +126,7 @@ export default function PressReleaseDetail() {
               src={release.image_url}
               alt={release.title}
               className="w-full h-full object-cover"
+              style={{ objectPosition: `center ${release.image_position || '50'}%` }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
           </motion.div>

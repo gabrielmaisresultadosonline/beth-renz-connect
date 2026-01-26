@@ -239,6 +239,7 @@ export type Database = {
           created_at: string
           display_order: number | null
           id: string
+          image_position: string | null
           image_url: string | null
           pinned: boolean | null
           published: boolean | null
@@ -253,6 +254,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
+          image_position?: string | null
           image_url?: string | null
           pinned?: boolean | null
           published?: boolean | null
@@ -267,6 +269,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
+          image_position?: string | null
           image_url?: string | null
           pinned?: boolean | null
           published?: boolean | null
