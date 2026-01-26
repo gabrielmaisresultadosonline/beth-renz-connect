@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Image, Video, Upload, Link, Loader2, X, Youtube, Bold, Heading1, Heading2, Smile, Link2 } from 'lucide-react';
+import { Image, Video, Upload, Link, Loader2, X, Youtube, Bold, Heading1, Heading2, Smile, Link2, Italic, Underline, Strikethrough } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface RichEditorProps {
@@ -15,6 +15,12 @@ interface RichEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   minRows?: number;
+}
+
+interface FloatingToolbarPosition {
+  top: number;
+  left: number;
+  visible: boolean;
 }
 
 const COMMON_EMOJIS = [
@@ -33,8 +39,10 @@ export function RichEditor({ value, onChange, placeholder = "Escreva seu conteú
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
+  const [floatingToolbar, setFloatingToolbar] = useState<FloatingToolbarPosition>({ top: 0, left: 0, visible: false });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const insertAtCursor = (text: string, wrapStart = '', wrapEnd = '') => {
@@ -66,7 +74,81 @@ export function RichEditor({ value, onChange, placeholder = "Escreva seu conteú
 
   const formatBold = () => {
     insertAtCursor('', '**', '**');
+    setFloatingToolbar(prev => ({ ...prev, visible: false }));
   };
+
+  const formatItalic = () => {
+    insertAtCursor('', '*', '*');
+    setFloatingToolbar(prev => ({ ...prev, visible: false }));
+  };
+
+  const formatUnderline = () => {
+    insertAtCursor('', '<u>', '</u>');
+    setFloatingToolbar(prev => ({ ...prev, visible: false }));
+  };
+
+  const formatStrikethrough = () => {
+    insertAtCursor('', '~~', '~~');
+    setFloatingToolbar(prev => ({ ...prev, visible: false }));
+  };
+
+  // Handle text selection for floating toolbar
+  const handleSelectionChange = useCallback(() => {
+    const textarea = textareaRef.current;
+    const container = containerRef.current;
+    if (!textarea || !container) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    if (start !== end && end - start > 0) {
+      // Get textarea position relative to container
+      const textareaRect = textarea.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      
+      // Calculate approximate position (centered above selection)
+      const lineHeight = 20; // approximate
+      const charsPerLine = Math.floor(textarea.clientWidth / 8); // approximate char width
+      const startLine = Math.floor(start / charsPerLine);
+      
+      const top = Math.max(0, startLine * lineHeight - 40);
+      const left = Math.min(
+        textareaRect.width - 200,
+        Math.max(0, (start % charsPerLine) * 8)
+      );
+      
+      setFloatingToolbar({
+        top: top,
+        left: left,
+        visible: true
+      });
+    } else {
+      setFloatingToolbar(prev => ({ ...prev, visible: false }));
+    }
+  }, []);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const handleMouseUp = () => {
+      setTimeout(handleSelectionChange, 10);
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.shiftKey || e.key === 'Shift') {
+        setTimeout(handleSelectionChange, 10);
+      }
+    };
+
+    textarea.addEventListener('mouseup', handleMouseUp);
+    textarea.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      textarea.removeEventListener('mouseup', handleMouseUp);
+      textarea.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [handleSelectionChange]);
 
   const formatHeading1 = () => {
     const textarea = textareaRef.current;
@@ -476,7 +558,60 @@ export function RichEditor({ value, onChange, placeholder = "Escreva seu conteú
         </span>
       </div>
 
-      <div className="relative">
+      <div className="relative" ref={containerRef}>
+        {/* Floating Toolbar */}
+        {floatingToolbar.visible && (
+          <div 
+            className="absolute z-50 flex items-center gap-0.5 p-1 bg-popover border rounded-lg shadow-lg animate-in fade-in-0 zoom-in-95"
+            style={{ 
+              top: `${floatingToolbar.top}px`, 
+              left: `${floatingToolbar.left}px`,
+            }}
+            onMouseDown={(e) => e.preventDefault()} // Prevent losing selection
+          >
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 w-7 p-0" 
+              onClick={formatBold} 
+              title="Negrito"
+            >
+              <Bold className="h-3.5 w-3.5" />
+            </Button>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 w-7 p-0" 
+              onClick={formatItalic} 
+              title="Itálico"
+            >
+              <Italic className="h-3.5 w-3.5" />
+            </Button>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 w-7 p-0" 
+              onClick={formatUnderline} 
+              title="Sublinhado"
+            >
+              <Underline className="h-3.5 w-3.5" />
+            </Button>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 w-7 p-0" 
+              onClick={formatStrikethrough} 
+              title="Riscado"
+            >
+              <Strikethrough className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+        
         <Textarea
           ref={textareaRef}
           value={value}
