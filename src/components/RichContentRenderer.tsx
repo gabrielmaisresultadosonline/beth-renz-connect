@@ -46,17 +46,20 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
       // Image: ![alt](url)
       const imageMatch = trimmedLine.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
       if (imageMatch) {
+        const altText = imageMatch[1];
+        const hasCaption = altText && altText.toLowerCase() !== 'imagem' && altText.toLowerCase() !== 'image';
+        
         elements.push(
           <figure key={key++} className="my-6">
             <img
               src={imageMatch[2]}
-              alt={imageMatch[1] || 'Imagem'}
+              alt={altText || 'Imagem'}
               className="w-full max-w-2xl mx-auto rounded-lg shadow-md"
               loading="lazy"
             />
-            {imageMatch[1] && (
+            {hasCaption && (
               <figcaption className="text-center text-sm text-muted-foreground mt-2 italic">
-                {imageMatch[1]}
+                {altText}
               </figcaption>
             )}
           </figure>
