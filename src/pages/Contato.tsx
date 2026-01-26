@@ -153,7 +153,7 @@ export default function Contato() {
                   </motion.a>
 
                   <motion.a
-                    href="tel:+5551981284627"
+                    href="tel:+5551981846227"
                     whileHover={{ x: 5 }}
                     className="flex items-center gap-4 p-4 rounded-xl bg-secondary hover:bg-primary/10 transition-colors group"
                   >
@@ -162,7 +162,7 @@ export default function Contato() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Telefone</p>
-                      <p className="font-semibold text-foreground">(51) 98128-4627</p>
+                      <p className="font-semibold text-foreground">(51) 98184-6227</p>
                     </div>
                   </motion.a>
 

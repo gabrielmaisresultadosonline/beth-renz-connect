@@ -18,7 +18,7 @@ const WhatsAppIcon = () => (
 );
 
 export function Layout({ children }: LayoutProps) {
-  const whatsappNumber = '5551981284627';
+  const whatsappNumber = '5551981846227';
   const whatsappMessage = encodeURIComponent('Olá vim pelo site Beth Renz !');
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
