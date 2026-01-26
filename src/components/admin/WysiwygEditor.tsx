@@ -154,7 +154,28 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
   const [linkText, setLinkText] = useState('');
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const savedSelectionRef = useRef<Range | null>(null);
   const { toast } = useToast();
+
+  // Save cursor position before opening dialogs
+  const saveSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      savedSelectionRef.current = selection.getRangeAt(0).cloneRange();
+    }
+  }, []);
+
+  // Restore cursor position after dialog closes
+  const restoreSelection = useCallback(() => {
+    if (savedSelectionRef.current && editorRef.current) {
+      editorRef.current.focus();
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(savedSelectionRef.current);
+      }
+    }
+  }, []);
 
   // Initialize editor content
   useEffect(() => {
@@ -257,14 +278,41 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
   };
 
   const insertMedia = (url: string, type: 'image' | 'video') => {
-    if (type === 'image') {
-      execCommand('insertHTML', `<img src="${url}" alt="imagem" class="editor-image" />`);
-    } else {
-      execCommand('insertHTML', `<div class="editor-video" data-src="${url}">[Vídeo: ${url.includes('youtube') ? 'YouTube' : 'Vídeo'}]</div>`);
-    }
+    // Close dialog first
     setMediaDialogOpen(false);
     setUrlInput('');
     setVideoEmbedUrl('');
+    
+    // Small delay to ensure dialog closes and focus is restored
+    setTimeout(() => {
+      // Try to restore saved cursor position
+      if (savedSelectionRef.current && editorRef.current) {
+        editorRef.current.focus();
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(savedSelectionRef.current);
+        }
+      } else if (editorRef.current) {
+        // If no saved selection, place cursor at end
+        editorRef.current.focus();
+        const selection = window.getSelection();
+        if (selection) {
+          selection.selectAllChildren(editorRef.current);
+          selection.collapseToEnd();
+        }
+      }
+      
+      // Now insert the content
+      if (type === 'image') {
+        document.execCommand('insertHTML', false, `<img src="${url}" alt="imagem" class="editor-image" />`);
+      } else {
+        document.execCommand('insertHTML', false, `<div class="editor-video" data-src="${url}">[Vídeo: ${url.includes('youtube') ? 'YouTube' : 'Vídeo'}]</div>`);
+      }
+      
+      // Trigger input event to update state
+      handleInput();
+    }, 100);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -436,13 +484,13 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
         {/* Media buttons */}
         <Dialog open={mediaDialogOpen} onOpenChange={setMediaDialogOpen}>
           <DialogTrigger asChild>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setMediaType('image')}>
+            <Button type="button" variant="ghost" size="sm" onClick={() => { saveSelection(); setMediaType('image'); }}>
               <Image className="h-4 w-4 mr-1" />
               Imagem
             </Button>
           </DialogTrigger>
           <DialogTrigger asChild>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setMediaType('video')}>
+            <Button type="button" variant="ghost" size="sm" onClick={() => { saveSelection(); setMediaType('video'); }}>
               <Video className="h-4 w-4 mr-1" />
               Vídeo
             </Button>
