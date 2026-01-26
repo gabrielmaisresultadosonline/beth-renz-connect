@@ -87,6 +87,15 @@ function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/<(strong|b|em|i|del|s|strike|u)>\s*/gi, '<$1>');
   markdown = markdown.replace(/\s*<\/(strong|b|em|i|del|s|strike|u)>/gi, '</$1>');
   
+  // Handle our custom editor classes FIRST (before general div/p handling)
+  // Convert editor-spacer divs to empty lines
+  markdown = markdown.replace(/<div[^>]*class="editor-spacer"[^>]*><\/div>/gi, '\n');
+  markdown = markdown.replace(/<div[^>]*class='editor-spacer'[^>]*><\/div>/gi, '\n');
+  
+  // Convert editor-paragraph p tags to lines with newline
+  markdown = markdown.replace(/<p[^>]*class="editor-paragraph"[^>]*>([\s\S]*?)<\/p>/gi, '$1\n');
+  markdown = markdown.replace(/<p[^>]*class='editor-paragraph'[^>]*>([\s\S]*?)<\/p>/gi, '$1\n');
+  
   // Remove contenteditable artifacts
   markdown = markdown.replace(/<div><br><\/div>/gi, '\n');
   markdown = markdown.replace(/<div>/gi, '\n');
@@ -119,19 +128,15 @@ function htmlToMarkdown(html: string): string {
   // Convert paragraphs and breaks
   markdown = markdown.replace(/<\/p><p>/gi, '\n\n');
   markdown = markdown.replace(/<p>/gi, '');
-  markdown = markdown.replace(/<\/p>/gi, '');
+  markdown = markdown.replace(/<\/p>/gi, '\n');
   markdown = markdown.replace(/<br\s*\/?>/gi, '\n');
-  
-  // Clean up any internal newlines within formatting markers
-  markdown = markdown.replace(/\*\*\s*\n+\s*/g, '**');
-  markdown = markdown.replace(/\s*\n+\s*\*\*/g, '**');
-  markdown = markdown.replace(/\*\s*\n+\s*/g, '*');
-  markdown = markdown.replace(/\s*\n+\s*\*/g, '*');
-  markdown = markdown.replace(/~~\s*\n+\s*/g, '~~');
-  markdown = markdown.replace(/\s*\n+\s*~~/g, '~~');
   
   // Clean up extra whitespace
   markdown = markdown.replace(/&nbsp;/g, ' ');
+  
+  // Remove multiple consecutive newlines (more than 2)
+  markdown = markdown.replace(/\n{3,}/g, '\n\n');
+  
   markdown = markdown.trim();
   
   return markdown;
