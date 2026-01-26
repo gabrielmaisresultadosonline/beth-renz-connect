@@ -5,46 +5,61 @@ interface RichContentRendererProps {
   className?: string;
 }
 
-// Pre-process content to normalize formatting across lines
+// Pre-process content to normalize formatting and clean up any raw HTML tags
 function preprocessContent(content: string): string {
   let processed = content;
   
-  // First, clean up any whitespace/newlines inside HTML tags
-  // This handles cases like <em>text\n</em> -> <em>text</em>
+  // FIRST: Clean up any raw HTML tags that shouldn't be in the content
+  // Remove editor-specific divs and convert to newlines
+  processed = processed.replace(/<div[^>]*class="editor-spacer"[^>]*><\/div>/gi, '\n');
+  processed = processed.replace(/<div[^>]*class='editor-spacer'[^>]*><\/div>/gi, '\n');
+  
+  // Remove editor-paragraph p tags and keep content with newlines
+  processed = processed.replace(/<p[^>]*class="editor-paragraph"[^>]*>([\s\S]*?)<\/p>/gi, '$1\n');
+  processed = processed.replace(/<p[^>]*class='editor-paragraph'[^>]*>([\s\S]*?)<\/p>/gi, '$1\n');
+  
+  // Clean generic divs
+  processed = processed.replace(/<div[^>]*>/gi, '\n');
+  processed = processed.replace(/<\/div>/gi, '');
+  
+  // Clean generic paragraphs
+  processed = processed.replace(/<p[^>]*>/gi, '');
+  processed = processed.replace(/<\/p>/gi, '\n');
+  
+  // Convert br tags to newlines
+  processed = processed.replace(/<br\s*\/?>/gi, '\n');
+  
+  // Clean span tags with inline styles (keep content)
+  processed = processed.replace(/<span[^>]*>([\s\S]*?)<\/span>/gi, '$1');
+  
+  // Clean up any whitespace/newlines inside HTML tags
   processed = processed.replace(/<(strong|em|b|i|u|del|s|strike)>([\s\S]*?)<\/\1>/gi, (match, tag, inner) => {
-    // Clean internal whitespace/newlines but preserve the content
     const cleanedInner = inner.trim();
     return `<${tag}>${cleanedInner}</${tag}>`;
   });
   
   // Convert nested HTML+markdown combos first
-  // Handle <em>**text**</em> -> convert to just italic (prioritize outer tag)
   processed = processed.replace(/<em>\*\*([\s\S]*?)\*\*<\/em>/gi, '*$1*');
   processed = processed.replace(/<i>\*\*([\s\S]*?)\*\*<\/i>/gi, '*$1*');
-  
-  // Handle <strong>*text*</strong> -> convert to just bold
   processed = processed.replace(/<strong>\*([\s\S]*?)\*<\/strong>/gi, '**$1**');
   processed = processed.replace(/<b>\*([\s\S]*?)\*<\/b>/gi, '**$1**');
   
-  // Now convert standalone HTML tags to markdown
-  // <strong>text</strong> or <b>text</b> -> **text**
+  // Convert standalone HTML tags to markdown
   processed = processed.replace(/<strong>([\s\S]*?)<\/strong>/gi, '**$1**');
   processed = processed.replace(/<b>([\s\S]*?)<\/b>/gi, '**$1**');
-  
-  // <em>text</em> or <i>text</i> -> *text*
   processed = processed.replace(/<em>([\s\S]*?)<\/em>/gi, '*$1*');
   processed = processed.replace(/<i>([\s\S]*?)<\/i>/gi, '*$1*');
-  
-  // <del>text</del> or <s>text</s> or <strike>text</strike> -> ~~text~~
   processed = processed.replace(/<del>([\s\S]*?)<\/del>/gi, '~~$1~~');
   processed = processed.replace(/<s>([\s\S]*?)<\/s>/gi, '~~$1~~');
   processed = processed.replace(/<strike>([\s\S]*?)<\/strike>/gi, '~~$1~~');
   
-  // Keep <u>text</u> as is since we handle it specially
-  // But clean up internal whitespace
+  // Keep <u>text</u> as is but clean internal whitespace
   processed = processed.replace(/<u>([\s\S]*?)<\/u>/gi, (match, inner) => `<u>${inner.trim()}</u>`);
   
-  // Clean up orphaned/broken tags (tags without proper closing)
+  // Convert anchor tags to markdown links
+  processed = processed.replace(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
+  
+  // Clean up orphaned/broken tags
   processed = processed.replace(/<(strong|em|b|i|del|s|strike)>\s*$/gim, '');
   processed = processed.replace(/^\s*<\/(strong|em|b|i|del|s|strike)>/gim, '');
   
@@ -53,11 +68,14 @@ function preprocessContent(content: string): string {
   processed = processed.replace(/\*\s*\*/g, '');
   processed = processed.replace(/~~\s*~~/g, '');
   
-  // Clean up whitespace around formatting markers
-  processed = processed.replace(/\*\*\s+/g, '**');
-  processed = processed.replace(/\s+\*\*/g, '**');
-  processed = processed.replace(/\*\s+(?!\*)/g, '*');
-  processed = processed.replace(/(?<!\*)\s+\*/g, '*');
+  // Clean up multiple consecutive newlines
+  processed = processed.replace(/\n{3,}/g, '\n\n');
+  
+  // Clean HTML entities
+  processed = processed.replace(/&nbsp;/g, ' ');
+  processed = processed.replace(/&amp;/g, '&');
+  processed = processed.replace(/&lt;/g, '<');
+  processed = processed.replace(/&gt;/g, '>');
   
   return processed;
 }
