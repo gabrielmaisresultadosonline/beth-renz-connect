@@ -203,31 +203,57 @@ function processLinksAndFormatting(text: string): React.ReactNode {
 }
 
 function processTextFormatting(text: string): React.ReactNode {
-  // Handle bold and then italic
   const parts: React.ReactNode[] = [];
-  let remaining = text;
   let key = 0;
 
-  // Process **bold**
-  const boldParts = remaining.split(/(\*\*[^*]+\*\*)/g);
+  // First process underline <u>...</u>
+  const underlineParts = text.split(/(<u>[^<]+<\/u>)/g);
   
-  for (const part of boldParts) {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      const boldText = part.slice(2, -2);
+  for (const underlinePart of underlineParts) {
+    if (underlinePart.startsWith('<u>') && underlinePart.endsWith('</u>')) {
+      const underlineText = underlinePart.slice(3, -4);
       parts.push(
-        <strong key={key++} className="font-semibold text-foreground">
-          {boldText}
-        </strong>
+        <u key={key++} className="underline underline-offset-2">
+          {underlineText}
+        </u>
       );
-    } else if (part) {
-      // Check for *italic* in non-bold parts
-      const italicParts = part.split(/(\*[^*]+\*)/g);
-      for (const italicPart of italicParts) {
-        if (italicPart.startsWith('*') && italicPart.endsWith('*') && !italicPart.startsWith('**')) {
-          const italicText = italicPart.slice(1, -1);
-          parts.push(<em key={key++}>{italicText}</em>);
-        } else if (italicPart) {
-          parts.push(<span key={key++}>{italicPart}</span>);
+    } else if (underlinePart) {
+      // Process strikethrough ~~text~~
+      const strikeParts = underlinePart.split(/(~~[^~]+~~)/g);
+      
+      for (const strikePart of strikeParts) {
+        if (strikePart.startsWith('~~') && strikePart.endsWith('~~')) {
+          const strikeText = strikePart.slice(2, -2);
+          parts.push(
+            <del key={key++} className="line-through text-muted-foreground/70">
+              {strikeText}
+            </del>
+          );
+        } else if (strikePart) {
+          // Process **bold**
+          const boldParts = strikePart.split(/(\*\*[^*]+\*\*)/g);
+          
+          for (const part of boldParts) {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              const boldText = part.slice(2, -2);
+              parts.push(
+                <strong key={key++} className="font-semibold text-foreground">
+                  {boldText}
+                </strong>
+              );
+            } else if (part) {
+              // Check for *italic* in non-bold parts
+              const italicParts = part.split(/(\*[^*]+\*)/g);
+              for (const italicPart of italicParts) {
+                if (italicPart.startsWith('*') && italicPart.endsWith('*') && !italicPart.startsWith('**')) {
+                  const italicText = italicPart.slice(1, -1);
+                  parts.push(<em key={key++}>{italicText}</em>);
+                } else if (italicPart) {
+                  parts.push(<span key={key++}>{italicPart}</span>);
+                }
+              }
+            }
+          }
         }
       }
     }
