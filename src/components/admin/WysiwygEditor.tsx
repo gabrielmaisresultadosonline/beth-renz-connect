@@ -73,33 +73,37 @@ function htmlToMarkdown(html: string): string {
   
   let markdown = html;
   
+  // First, normalize the HTML - remove line breaks inside formatting tags
+  markdown = markdown.replace(/<(strong|b|em|i|del|s|strike|u)>\s*/gi, '<$1>');
+  markdown = markdown.replace(/\s*<\/(strong|b|em|i|del|s|strike|u)>/gi, '</$1>');
+  
   // Remove contenteditable artifacts
   markdown = markdown.replace(/<div><br><\/div>/gi, '\n');
   markdown = markdown.replace(/<div>/gi, '\n');
   markdown = markdown.replace(/<\/div>/gi, '');
   
-  // Convert headings
-  markdown = markdown.replace(/<h1[^>]*>([^<]+)<\/h1>/gi, '# $1\n');
-  markdown = markdown.replace(/<h2[^>]*>([^<]+)<\/h2>/gi, '## $1\n');
+  // Convert headings (allow multiline content with [\s\S])
+  markdown = markdown.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '# $1\n');
+  markdown = markdown.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '## $1\n');
   
   // Convert images
   markdown = markdown.replace(/<img[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, '![$2]($1)');
   markdown = markdown.replace(/<img[^>]*alt="([^"]*)"[^>]*src="([^"]+)"[^>]*\/?>/gi, '![$1]($2)');
   
   // Convert videos
-  markdown = markdown.replace(/<div[^>]*class="editor-video"[^>]*data-src="([^"]+)"[^>]*>[^<]*<\/div>/gi, '[video]($1)');
+  markdown = markdown.replace(/<div[^>]*class="editor-video"[^>]*data-src="([^"]+)"[^>]*>[\s\S]*?<\/div>/gi, '[video]($1)');
   
-  // Convert links
-  markdown = markdown.replace(/<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/gi, '[$2]($1)');
+  // Convert links (allow multiline content)
+  markdown = markdown.replace(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
   
-  // Convert formatting
-  markdown = markdown.replace(/<strong>([^<]+)<\/strong>/gi, '**$1**');
-  markdown = markdown.replace(/<b>([^<]+)<\/b>/gi, '**$1**');
-  markdown = markdown.replace(/<em>([^<]+)<\/em>/gi, '*$1*');
-  markdown = markdown.replace(/<i>([^<]+)<\/i>/gi, '*$1*');
-  markdown = markdown.replace(/<del>([^<]+)<\/del>/gi, '~~$1~~');
-  markdown = markdown.replace(/<strike>([^<]+)<\/strike>/gi, '~~$1~~');
-  markdown = markdown.replace(/<s>([^<]+)<\/s>/gi, '~~$1~~');
+  // Convert formatting (use [\s\S]*? for multiline support, but be non-greedy)
+  markdown = markdown.replace(/<strong>([\s\S]*?)<\/strong>/gi, '**$1**');
+  markdown = markdown.replace(/<b>([\s\S]*?)<\/b>/gi, '**$1**');
+  markdown = markdown.replace(/<em>([\s\S]*?)<\/em>/gi, '*$1*');
+  markdown = markdown.replace(/<i>([\s\S]*?)<\/i>/gi, '*$1*');
+  markdown = markdown.replace(/<del>([\s\S]*?)<\/del>/gi, '~~$1~~');
+  markdown = markdown.replace(/<strike>([\s\S]*?)<\/strike>/gi, '~~$1~~');
+  markdown = markdown.replace(/<s>([\s\S]*?)<\/s>/gi, '~~$1~~');
   // Keep underline as HTML tag
   
   // Convert paragraphs and breaks
@@ -107,6 +111,14 @@ function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/<p>/gi, '');
   markdown = markdown.replace(/<\/p>/gi, '');
   markdown = markdown.replace(/<br\s*\/?>/gi, '\n');
+  
+  // Clean up any internal newlines within formatting markers
+  markdown = markdown.replace(/\*\*\s*\n+\s*/g, '**');
+  markdown = markdown.replace(/\s*\n+\s*\*\*/g, '**');
+  markdown = markdown.replace(/\*\s*\n+\s*/g, '*');
+  markdown = markdown.replace(/\s*\n+\s*\*/g, '*');
+  markdown = markdown.replace(/~~\s*\n+\s*/g, '~~');
+  markdown = markdown.replace(/\s*\n+\s*~~/g, '~~');
   
   // Clean up extra whitespace
   markdown = markdown.replace(/&nbsp;/g, ' ');

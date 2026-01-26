@@ -5,11 +5,49 @@ interface RichContentRendererProps {
   className?: string;
 }
 
+// Pre-process content to normalize formatting across lines
+function preprocessContent(content: string): string {
+  let processed = content;
+  
+  // Normalize line breaks - join HTML tags that span multiple lines
+  // Handle <strong>text\n</strong> -> <strong>text</strong>
+  processed = processed.replace(/<(strong|em|b|i|u|del|s|strike)>\s*\n+/gi, '<$1>');
+  processed = processed.replace(/\n+\s*<\/(strong|em|b|i|u|del|s|strike)>/gi, '</$1>');
+  
+  // Convert HTML tags to markdown for consistent processing
+  // <strong>text</strong> or <b>text</b> -> **text**
+  processed = processed.replace(/<strong>([^<]*)<\/strong>/gi, '**$1**');
+  processed = processed.replace(/<b>([^<]*)<\/b>/gi, '**$1**');
+  
+  // <em>text</em> or <i>text</i> -> *text*
+  processed = processed.replace(/<em>([^<]*)<\/em>/gi, '*$1*');
+  processed = processed.replace(/<i>([^<]*)<\/i>/gi, '*$1*');
+  
+  // <del>text</del> or <s>text</s> or <strike>text</strike> -> ~~text~~
+  processed = processed.replace(/<del>([^<]*)<\/del>/gi, '~~$1~~');
+  processed = processed.replace(/<s>([^<]*)<\/s>/gi, '~~$1~~');
+  processed = processed.replace(/<strike>([^<]*)<\/strike>/gi, '~~$1~~');
+  
+  // Keep <u>text</u> as is since we handle it specially
+  
+  // Clean up orphaned/broken tags (tags without content or closing)
+  processed = processed.replace(/<(strong|em|b|i|del|s|strike)>\s*$/gim, '');
+  processed = processed.replace(/^\s*<\/(strong|em|b|i|del|s|strike)>/gim, '');
+  
+  // Remove any remaining empty HTML tags
+  processed = processed.replace(/<(strong|em|b|i|del|s|strike)>\s*<\/\1>/gi, '');
+  
+  return processed;
+}
+
 export function RichContentRenderer({ content, className = '' }: RichContentRendererProps) {
   const renderedContent = useMemo(() => {
     if (!content) return [];
 
-    const lines = content.split('\n');
+    // Pre-process to normalize HTML/markdown formatting
+    const processedContent = preprocessContent(content);
+    
+    const lines = processedContent.split('\n');
     const elements: React.ReactNode[] = [];
     let key = 0;
 
@@ -210,10 +248,10 @@ function processTextFormatting(text: string): React.ReactNode {
   let key = 0;
 
   // First process underline <u>...</u>
-  const underlineParts = text.split(/(<u>[^<]+<\/u>)/g);
+  const underlineParts = text.split(/(<u>[^<]+<\/u>)/gi);
   
   for (const underlinePart of underlineParts) {
-    if (underlinePart.startsWith('<u>') && underlinePart.endsWith('</u>')) {
+    if (underlinePart.toLowerCase().startsWith('<u>') && underlinePart.toLowerCase().endsWith('</u>')) {
       const underlineText = underlinePart.slice(3, -4);
       parts.push(
         <u key={key++} className="underline underline-offset-2">
