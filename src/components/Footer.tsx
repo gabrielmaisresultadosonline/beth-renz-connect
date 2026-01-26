@@ -52,11 +52,11 @@ export function Footer() {
                 imprensa@bethrenz.com.br
               </a>
               <a
-                href="tel:+5551981284627"
+                href="tel:+5551981846227"
                 className="flex items-center gap-2 text-sm text-background/70 hover:text-primary transition-colors"
               >
                 <Phone className="h-4 w-4" />
-                (51) 98128-4627
+                (51) 98184-6227
               </a>
             </div>
           </div>
