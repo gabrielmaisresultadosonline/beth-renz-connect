@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RichEditor } from './RichEditor';
+import { WysiwygEditor } from './WysiwygEditor';
 import { RichContentRenderer } from '@/components/RichContentRenderer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Eye, Edit3 } from 'lucide-react';
@@ -8,7 +8,8 @@ interface RichEditorWithPreviewProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  minRows?: number;
+  minHeight?: number;
+  minRows?: number; // Keep for backwards compatibility, converts to minHeight
   label?: string;
 }
 
@@ -16,10 +17,14 @@ export function RichEditorWithPreview({
   value,
   onChange,
   placeholder,
-  minRows = 10,
+  minHeight = 250,
+  minRows,
   label = 'Conteúdo',
 }: RichEditorWithPreviewProps) {
   const [activeTab, setActiveTab] = useState<'edit' | 'preview' | 'split'>('split');
+  
+  // Convert minRows to minHeight if provided (for backwards compatibility)
+  const calculatedMinHeight = minRows ? minRows * 24 : minHeight;
 
   return (
     <div className="space-y-2">
@@ -45,11 +50,11 @@ export function RichEditorWithPreview({
       )}
 
       {activeTab === 'edit' && (
-        <RichEditor
+        <WysiwygEditor
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          minRows={minRows}
+          minHeight={calculatedMinHeight}
         />
       )}
 
@@ -69,11 +74,11 @@ export function RichEditorWithPreview({
         <div className="grid lg:grid-cols-2 gap-4">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground font-medium">Editor</p>
-            <RichEditor
+            <WysiwygEditor
               value={value}
               onChange={onChange}
               placeholder={placeholder}
-              minRows={Math.max(8, minRows - 2)}
+              minHeight={Math.max(180, calculatedMinHeight - 50)}
             />
           </div>
           <div className="space-y-1">
