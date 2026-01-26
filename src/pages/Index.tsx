@@ -30,6 +30,7 @@ interface PressRelease {
   pinned: boolean | null;
   show_date: boolean | null;
   display_order: number | null;
+  slug: string | null;
 }
 
 interface Client {
@@ -237,7 +238,7 @@ export default function Index() {
               {featuredRelease ? (
                 <AnimatedSection>
                   <Link 
-                    to={`/press-releases/${featuredRelease.id}`}
+                    to={`/press-releases/${featuredRelease.slug || featuredRelease.id}`}
                     className="group block"
                   >
                     <div className="relative aspect-[16/9] rounded-lg overflow-hidden mb-4">
@@ -295,7 +296,7 @@ export default function Index() {
                   {otherReleases.map((release, index) => (
                     <AnimatedSection key={release.id} delay={index * 0.1}>
                       <Link 
-                        to={`/press-releases/${release.id}`}
+                        to={`/press-releases/${release.slug || release.id}`}
                         className="group flex gap-4"
                       >
                         <div className="flex-shrink-0 w-32 h-24 md:w-48 md:h-32 rounded-lg overflow-hidden">
