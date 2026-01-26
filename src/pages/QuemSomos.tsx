@@ -139,21 +139,9 @@ export default function QuemSomos() {
 
                   {/* Info */}
                   <div className="flex-1">
-                    {/* Name - clickable for founder */}
-                    {member.name.toLowerCase().includes('elizabeth') || member.name.toLowerCase().includes('beth') ? (
-                      <a 
-                        href="https://bethrenz.com.br/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-2xl font-display font-bold text-primary mb-2 block hover:underline"
-                      >
-                        {member.name}
-                      </a>
-                    ) : (
-                      <h3 className="text-2xl font-display font-bold text-primary mb-2">
-                        {member.name}
-                      </h3>
-                    )}
+                    <h3 className="text-2xl font-display font-bold text-primary mb-2">
+                      {member.name}
+                    </h3>
                     {member.role && (
                       <p className="text-sm text-muted-foreground uppercase tracking-wider mb-4">
                         {member.role}
@@ -161,25 +149,36 @@ export default function QuemSomos() {
                     )}
                     <div className="text-muted-foreground space-y-3 whitespace-pre-line">
                       {member.bio.split('\n\n').map((paragraph, i) => {
-                        // Convert specific text to links
+                        // Convert specific text to links with visible URL
                         let processedText = paragraph;
                         
-                        // Replace "São Leopoldo Negócios & Cia" with clickable link
+                        // Replace "São Leopoldo Negócios & Cia" with clickable link + visible URL
                         if (processedText.includes('São Leopoldo Negócios & Cia')) {
                           const parts = processedText.split(/(São Leopoldo Negócios & Cia)/);
                           return (
                             <p key={i}>
                               {parts.map((part, j) => 
                                 part === 'São Leopoldo Negócios & Cia' ? (
-                                  <a 
-                                    key={j}
-                                    href="https://slnegociosecia.com.br/" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:underline"
-                                  >
-                                    {part}
-                                  </a>
+                                  <span key={j}>
+                                    <a 
+                                      href="https://slnegociosecia.com.br/" 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-primary hover:underline"
+                                    >
+                                      {part}
+                                    </a>
+                                    <span className="text-primary"> (</span>
+                                    <a 
+                                      href="https://slnegociosecia.com.br/" 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-primary hover:underline"
+                                    >
+                                      https://slnegociosecia.com.br/
+                                    </a>
+                                    <span className="text-primary">)</span>
+                                  </span>
                                 ) : (
                                   <span key={j}>{part}</span>
                                 )
