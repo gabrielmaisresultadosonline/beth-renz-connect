@@ -32,7 +32,15 @@ function preprocessContent(content: string): string {
   // Clean span tags with inline styles (keep content)
   processed = processed.replace(/<span[^>]*>([\s\S]*?)<\/span>/gi, '$1');
   
-  // Clean up any whitespace/newlines inside HTML tags
+  // IMPORTANT: Clean strong/em/b/i tags WITH attributes/styles first (convert to markdown)
+  // This handles cases like <strong style="...">text</strong>
+  processed = processed.replace(/<strong[^>]+>([\s\S]*?)<\/strong>/gi, '**$1**');
+  processed = processed.replace(/<b[^>]+>([\s\S]*?)<\/b>/gi, '**$1**');
+  processed = processed.replace(/<em[^>]+>([\s\S]*?)<\/em>/gi, '*$1*');
+  processed = processed.replace(/<i[^>]+>([\s\S]*?)<\/i>/gi, '*$1*');
+  processed = processed.replace(/<u[^>]+>([\s\S]*?)<\/u>/gi, '<u>$1</u>');
+  
+  // Clean up any whitespace/newlines inside HTML tags (without attributes)
   processed = processed.replace(/<(strong|em|b|i|u|del|s|strike)>([\s\S]*?)<\/\1>/gi, (match, tag, inner) => {
     const cleanedInner = inner.trim();
     return `<${tag}>${cleanedInner}</${tag}>`;
@@ -44,7 +52,7 @@ function preprocessContent(content: string): string {
   processed = processed.replace(/<strong>\*([\s\S]*?)\*<\/strong>/gi, '**$1**');
   processed = processed.replace(/<b>\*([\s\S]*?)\*<\/b>/gi, '**$1**');
   
-  // Convert standalone HTML tags to markdown
+  // Convert standalone HTML tags to markdown (without attributes - simpler tags)
   processed = processed.replace(/<strong>([\s\S]*?)<\/strong>/gi, '**$1**');
   processed = processed.replace(/<b>([\s\S]*?)<\/b>/gi, '**$1**');
   processed = processed.replace(/<em>([\s\S]*?)<\/em>/gi, '*$1*');
@@ -59,9 +67,13 @@ function preprocessContent(content: string): string {
   // Convert anchor tags to markdown links
   processed = processed.replace(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
   
-  // Clean up orphaned/broken tags
-  processed = processed.replace(/<(strong|em|b|i|del|s|strike)>\s*$/gim, '');
+  // Clean up orphaned/broken tags including with attributes
+  processed = processed.replace(/<(strong|em|b|i|del|s|strike)[^>]*>\s*$/gim, '');
   processed = processed.replace(/^\s*<\/(strong|em|b|i|del|s|strike)>/gim, '');
+  
+  // Remove incomplete/broken HTML tags that might appear as raw text
+  // e.g., <strong style="..."> without closing
+  processed = processed.replace(/<(strong|em|b|i|u|del|s|strike|span)[^>]*>(?![^<]*<\/\1>)/gi, '');
   
   // Remove any remaining empty formatting
   processed = processed.replace(/\*\*\s*\*\*/g, '');
@@ -121,7 +133,7 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
         continue;
       }
 
-      // Image: ![alt](url)
+      // Image: ![alt](url) - standalone on its own line
       const imageMatch = trimmedLine.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
       if (imageMatch) {
         const altText = imageMatch[1];
@@ -142,6 +154,64 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
             )}
           </figure>
         );
+        continue;
+      }
+
+      // Check if line contains an image mixed with text - separate them
+      const inlineImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+      const hasInlineImage = inlineImageRegex.test(trimmedLine);
+      
+      if (hasInlineImage) {
+        // Reset regex
+        inlineImageRegex.lastIndex = 0;
+        
+        // Split the line by images and render each part separately
+        let lastIndex = 0;
+        let match;
+        
+        while ((match = inlineImageRegex.exec(trimmedLine)) !== null) {
+          // Text before the image
+          const textBefore = trimmedLine.slice(lastIndex, match.index).trim();
+          if (textBefore) {
+            elements.push(
+              <p key={key++} className="text-base md:text-lg leading-relaxed text-muted-foreground mb-3">
+                {processInlineFormatting(textBefore)}
+              </p>
+            );
+          }
+          
+          // The image itself - as a block element
+          const altText = match[1];
+          const hasCaption = altText && altText.toLowerCase() !== 'imagem' && altText.toLowerCase() !== 'image';
+          
+          elements.push(
+            <figure key={key++} className="my-6">
+              <img
+                src={match[2]}
+                alt={altText || 'Imagem'}
+                className="w-full max-w-2xl mx-auto rounded-lg shadow-md"
+                loading="lazy"
+              />
+              {hasCaption && (
+                <figcaption className="text-center text-sm text-muted-foreground mt-2 italic">
+                  {altText}
+                </figcaption>
+              )}
+            </figure>
+          );
+          
+          lastIndex = match.index + match[0].length;
+        }
+        
+        // Text after the last image
+        const textAfter = trimmedLine.slice(lastIndex).trim();
+        if (textAfter) {
+          elements.push(
+            <p key={key++} className="text-base md:text-lg leading-relaxed text-muted-foreground mb-3">
+              {processInlineFormatting(textAfter)}
+            </p>
+          );
+        }
         continue;
       }
 
@@ -212,45 +282,8 @@ function processInlineFormattingWithBreaks(text: string): React.ReactNode {
 }
 
 // Process inline formatting like **bold**, *italic*, and [links](url)
+// Note: Images should be on their own line, not inline with text
 function processInlineFormatting(text: string): React.ReactNode {
-  // Process inline images that might be in the middle of text
-  const inlineImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-
-  let lastIndex = 0;
-  const parts: React.ReactNode[] = [];
-  let key = 0;
-
-  // First handle inline images
-  const imageMatches = [...text.matchAll(inlineImageRegex)];
-  if (imageMatches.length > 0) {
-    for (const match of imageMatches) {
-      if (match.index! > lastIndex) {
-        parts.push(
-          <span key={key++}>
-            {processLinksAndFormatting(text.slice(lastIndex, match.index))}
-          </span>
-        );
-      }
-      parts.push(
-        <img
-          key={key++}
-          src={match[2]}
-          alt={match[1] || 'Imagem'}
-          className="inline-block max-h-64 rounded my-2"
-        />
-      );
-      lastIndex = match.index! + match[0].length;
-    }
-    if (lastIndex < text.length) {
-      parts.push(
-        <span key={key++}>
-          {processLinksAndFormatting(text.slice(lastIndex))}
-        </span>
-      );
-    }
-    return <>{parts}</>;
-  }
-
   return processLinksAndFormatting(text);
 }
 
