@@ -264,22 +264,27 @@ function processInlineFormatting(text: string): React.ReactNode {
   return processLinksAndFormatting(text);
 }
 
-// Process links [text](url) and then text formatting
+// Process links [text](url), [url], and plain URLs then text formatting
 function processLinksAndFormatting(text: string): React.ReactNode {
-  // Link regex: [text](url) - but not images which start with !
-  const linkRegex = /(?<!!)\[([^\]]+)\]\(([^)]+)\)/g;
+  // First handle markdown links: [text](url) - but not images which start with !
+  const markdownLinkRegex = /(?<!!)\[([^\]]+)\]\(([^)]+)\)/g;
+  // Then handle bracketed URLs: [https://...]
+  const bracketedUrlRegex = /\[(https?:\/\/[^\]]+)\]/g;
+  // Finally handle plain URLs
+  const plainUrlRegex = /(https?:\/\/[^\s<>\[\]"']+)/g;
   
   let lastIndex = 0;
   const parts: React.ReactNode[] = [];
   let key = 0;
 
-  const linkMatches = [...text.matchAll(linkRegex)];
-  if (linkMatches.length > 0) {
-    for (const match of linkMatches) {
+  // First pass: handle markdown links [text](url)
+  const markdownMatches = [...text.matchAll(markdownLinkRegex)];
+  if (markdownMatches.length > 0) {
+    for (const match of markdownMatches) {
       if (match.index! > lastIndex) {
         parts.push(
           <span key={key++}>
-            {processTextFormatting(text.slice(lastIndex, match.index))}
+            {processUrlsAndFormatting(text.slice(lastIndex, match.index))}
           </span>
         );
       }
@@ -292,6 +297,53 @@ function processLinksAndFormatting(text: string): React.ReactNode {
           className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
         >
           {match[1]}
+        </a>
+      );
+      lastIndex = match.index! + match[0].length;
+    }
+    if (lastIndex < text.length) {
+      parts.push(
+        <span key={key++}>
+          {processUrlsAndFormatting(text.slice(lastIndex))}
+        </span>
+      );
+    }
+    return <>{parts}</>;
+  }
+
+  return processUrlsAndFormatting(text);
+}
+
+// Process bracketed URLs [url] and plain URLs
+function processUrlsAndFormatting(text: string): React.ReactNode {
+  // Combined regex for bracketed URLs [https://...] and plain URLs
+  const urlRegex = /\[(https?:\/\/[^\]]+)\]|(https?:\/\/[^\s<>\[\]"'()]+)/g;
+  
+  let lastIndex = 0;
+  const parts: React.ReactNode[] = [];
+  let key = 0;
+
+  const urlMatches = [...text.matchAll(urlRegex)];
+  if (urlMatches.length > 0) {
+    for (const match of urlMatches) {
+      if (match.index! > lastIndex) {
+        parts.push(
+          <span key={key++}>
+            {processTextFormatting(text.slice(lastIndex, match.index))}
+          </span>
+        );
+      }
+      // match[1] is bracketed URL, match[2] is plain URL
+      const url = match[1] || match[2];
+      parts.push(
+        <a
+          key={key++}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors break-all"
+        >
+          {url}
         </a>
       );
       lastIndex = match.index! + match[0].length;
