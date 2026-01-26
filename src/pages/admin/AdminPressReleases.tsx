@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Pin, Calendar, CalendarOff, Settings, Link2, Pencil as EditIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import { RichEditor } from '@/components/admin/RichEditor';
+import { WysiwygEditor } from '@/components/admin/WysiwygEditor';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { DraggableImagePosition } from '@/components/admin/DraggableImagePosition';
 
@@ -374,10 +374,11 @@ export default function AdminPressReleases() {
                   </div>
                   <div>
                     <Label>Conteúdo *</Label>
-                    <RichEditor 
+                    <WysiwygEditor 
                       value={formData.content} 
                       onChange={(value) => setFormData({ ...formData, content: value })}
-                      placeholder="Escreva o conteúdo do press release. Use os botões acima para inserir imagens e vídeos..."
+                      placeholder="Escreva o conteúdo do press release..."
+                      minHeight={250}
                     />
                   </div>
                 </div>

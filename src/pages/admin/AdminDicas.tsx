@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
-import { RichEditor } from '@/components/admin/RichEditor';
+import { WysiwygEditor } from '@/components/admin/WysiwygEditor';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 
 interface Tip {
@@ -122,10 +122,11 @@ export default function AdminDicas() {
                   </div>
                   <div>
                     <Label>Conteúdo *</Label>
-                    <RichEditor 
+                    <WysiwygEditor 
                       value={formData.content} 
                       onChange={(value) => setFormData({ ...formData, content: value })}
-                      placeholder="Escreva o conteúdo da dica. Use os botões para inserir imagens e vídeos..."
+                      placeholder="Escreva o conteúdo da dica..."
+                      minHeight={200}
                     />
                   </div>
                 </div>
