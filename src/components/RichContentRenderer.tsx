@@ -9,33 +9,55 @@ interface RichContentRendererProps {
 function preprocessContent(content: string): string {
   let processed = content;
   
-  // Normalize line breaks - join HTML tags that span multiple lines
-  // Handle <strong>text\n</strong> -> <strong>text</strong>
-  processed = processed.replace(/<(strong|em|b|i|u|del|s|strike)>\s*\n+/gi, '<$1>');
-  processed = processed.replace(/\n+\s*<\/(strong|em|b|i|u|del|s|strike)>/gi, '</$1>');
+  // First, clean up any whitespace/newlines inside HTML tags
+  // This handles cases like <em>text\n</em> -> <em>text</em>
+  processed = processed.replace(/<(strong|em|b|i|u|del|s|strike)>([\s\S]*?)<\/\1>/gi, (match, tag, inner) => {
+    // Clean internal whitespace/newlines but preserve the content
+    const cleanedInner = inner.trim();
+    return `<${tag}>${cleanedInner}</${tag}>`;
+  });
   
-  // Convert HTML tags to markdown for consistent processing
+  // Convert nested HTML+markdown combos first
+  // Handle <em>**text**</em> -> convert to just italic (prioritize outer tag)
+  processed = processed.replace(/<em>\*\*([\s\S]*?)\*\*<\/em>/gi, '*$1*');
+  processed = processed.replace(/<i>\*\*([\s\S]*?)\*\*<\/i>/gi, '*$1*');
+  
+  // Handle <strong>*text*</strong> -> convert to just bold
+  processed = processed.replace(/<strong>\*([\s\S]*?)\*<\/strong>/gi, '**$1**');
+  processed = processed.replace(/<b>\*([\s\S]*?)\*<\/b>/gi, '**$1**');
+  
+  // Now convert standalone HTML tags to markdown
   // <strong>text</strong> or <b>text</b> -> **text**
-  processed = processed.replace(/<strong>([^<]*)<\/strong>/gi, '**$1**');
-  processed = processed.replace(/<b>([^<]*)<\/b>/gi, '**$1**');
+  processed = processed.replace(/<strong>([\s\S]*?)<\/strong>/gi, '**$1**');
+  processed = processed.replace(/<b>([\s\S]*?)<\/b>/gi, '**$1**');
   
   // <em>text</em> or <i>text</i> -> *text*
-  processed = processed.replace(/<em>([^<]*)<\/em>/gi, '*$1*');
-  processed = processed.replace(/<i>([^<]*)<\/i>/gi, '*$1*');
+  processed = processed.replace(/<em>([\s\S]*?)<\/em>/gi, '*$1*');
+  processed = processed.replace(/<i>([\s\S]*?)<\/i>/gi, '*$1*');
   
   // <del>text</del> or <s>text</s> or <strike>text</strike> -> ~~text~~
-  processed = processed.replace(/<del>([^<]*)<\/del>/gi, '~~$1~~');
-  processed = processed.replace(/<s>([^<]*)<\/s>/gi, '~~$1~~');
-  processed = processed.replace(/<strike>([^<]*)<\/strike>/gi, '~~$1~~');
+  processed = processed.replace(/<del>([\s\S]*?)<\/del>/gi, '~~$1~~');
+  processed = processed.replace(/<s>([\s\S]*?)<\/s>/gi, '~~$1~~');
+  processed = processed.replace(/<strike>([\s\S]*?)<\/strike>/gi, '~~$1~~');
   
   // Keep <u>text</u> as is since we handle it specially
+  // But clean up internal whitespace
+  processed = processed.replace(/<u>([\s\S]*?)<\/u>/gi, (match, inner) => `<u>${inner.trim()}</u>`);
   
-  // Clean up orphaned/broken tags (tags without content or closing)
+  // Clean up orphaned/broken tags (tags without proper closing)
   processed = processed.replace(/<(strong|em|b|i|del|s|strike)>\s*$/gim, '');
   processed = processed.replace(/^\s*<\/(strong|em|b|i|del|s|strike)>/gim, '');
   
-  // Remove any remaining empty HTML tags
-  processed = processed.replace(/<(strong|em|b|i|del|s|strike)>\s*<\/\1>/gi, '');
+  // Remove any remaining empty formatting
+  processed = processed.replace(/\*\*\s*\*\*/g, '');
+  processed = processed.replace(/\*\s*\*/g, '');
+  processed = processed.replace(/~~\s*~~/g, '');
+  
+  // Clean up whitespace around formatting markers
+  processed = processed.replace(/\*\*\s+/g, '**');
+  processed = processed.replace(/\s+\*\*/g, '**');
+  processed = processed.replace(/\*\s+(?!\*)/g, '*');
+  processed = processed.replace(/(?<!\*)\s+\*/g, '*');
   
   return processed;
 }
@@ -271,11 +293,11 @@ function processTextFormatting(text: string): React.ReactNode {
             </del>
           );
         } else if (strikePart) {
-          // Process **bold**
+          // Process **bold** - more flexible regex
           const boldParts = strikePart.split(/(\*\*[^*]+\*\*)/g);
           
           for (const part of boldParts) {
-            if (part.startsWith('**') && part.endsWith('**')) {
+            if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
               const boldText = part.slice(2, -2);
               parts.push(
                 <strong key={key++} className="font-semibold text-foreground">
@@ -284,14 +306,15 @@ function processTextFormatting(text: string): React.ReactNode {
               );
             } else if (part) {
               // Check for *italic* in non-bold parts
-              const italicParts = part.split(/(\*[^*]+\*)/g);
+              const italicParts = part.split(/(?<!\*)\*([^*]+)\*(?!\*)/g);
+              let isContent = false;
               for (const italicPart of italicParts) {
-                if (italicPart.startsWith('*') && italicPart.endsWith('*') && !italicPart.startsWith('**')) {
-                  const italicText = italicPart.slice(1, -1);
-                  parts.push(<em key={key++}>{italicText}</em>);
+                if (isContent && italicPart) {
+                  parts.push(<em key={key++}>{italicPart}</em>);
                 } else if (italicPart) {
                   parts.push(<span key={key++}>{italicPart}</span>);
                 }
+                isContent = !isContent;
               }
             }
           }
