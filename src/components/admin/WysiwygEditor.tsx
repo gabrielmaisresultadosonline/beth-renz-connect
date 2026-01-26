@@ -246,7 +246,10 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
     setLinkText('');
   };
 
-  const uploadFile = async (file: File): Promise<string | null> => {
+  const uploadFile = async (
+    file: File,
+    options?: { preserveOriginalName?: boolean }
+  ): Promise<string | null> => {
     if (file.size > 16 * 1024 * 1024) {
       toast({ title: 'Arquivo muito grande', description: 'Máximo 16MB', variant: 'destructive' });
       return null;
@@ -254,13 +257,17 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
 
     setUploading(true);
     try {
+      const preserveOriginalName = !!options?.preserveOriginalName;
+
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileName = preserveOriginalName
+        ? file.name
+        : `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `uploads/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('media')
-        .upload(filePath, file);
+        .upload(filePath, file, { upsert: false });
 
       if (uploadError) throw uploadError;
 
@@ -268,14 +275,25 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
         .from('media')
         .getPublicUrl(filePath);
 
-      toast({ 
-        title: 'Upload concluído', 
-        description: `Arquivo salvo como: ${fileName}` 
+      toast({
+        title: 'Upload concluído',
+        description: `Arquivo salvo como: ${fileName}`
       });
       
       return publicUrl;
     } catch (error: any) {
-      toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
+      // If user asked to preserve name, collisions are expected.
+      const msg = String(error?.message || 'Erro no upload');
+      const alreadyExists = /already exists|existente|exists/i.test(msg);
+      if (options?.preserveOriginalName && alreadyExists) {
+        toast({
+          title: 'Esse nome já existe',
+          description: 'Renomeie o arquivo no seu computador e tente novamente (Upload mantém o nome original).',
+          variant: 'destructive'
+        });
+      } else {
+        toast({ title: 'Erro no upload', description: msg, variant: 'destructive' });
+      }
       return null;
     } finally {
       setUploading(false);
@@ -324,7 +342,8 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const url = await uploadFile(file);
+    // Upload via seletor: manter o nome original no link
+    const url = await uploadFile(file, { preserveOriginalName: true });
     if (url) {
       const type = file.type.startsWith('video/') ? 'video' : 'image';
       insertMedia(url, type);
@@ -341,7 +360,8 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
         e.preventDefault();
         const file = item.getAsFile();
         if (file) {
-          const url = await uploadFile(file);
+          // Colar (Ctrl+V): manter a renomeação automática
+          const url = await uploadFile(file, { preserveOriginalName: false });
           if (url) {
             insertMedia(url, 'image');
           }
@@ -358,7 +378,8 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
 
     const file = files[0];
     if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-      const url = await uploadFile(file);
+      // Arrastar e soltar: manter o nome original no link
+      const url = await uploadFile(file, { preserveOriginalName: true });
       if (url) {
         const type = file.type.startsWith('video/') ? 'video' : 'image';
         insertMedia(url, type);
