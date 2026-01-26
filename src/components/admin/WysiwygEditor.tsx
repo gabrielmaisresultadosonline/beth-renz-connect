@@ -29,42 +29,52 @@ const COMMON_EMOJIS = [
 function markdownToHtml(markdown: string): string {
   if (!markdown) return '';
   
-  let html = markdown;
+  // Split by lines and process each
+  const lines = markdown.split('\n');
+  const htmlParts: string[] = [];
   
-  // Convert headings
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  
-  // Convert images
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="editor-image" />');
-  
-  // Convert videos
-  html = html.replace(/\[video\]\(([^)]+)\)/g, '<div class="editor-video" data-src="$1">[Vídeo]</div>');
-  
-  // Convert links
-  html = html.replace(/(?<!!)\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-  
-  // Convert bold **text**
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  
-  // Convert italic *text*
-  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
-  
-  // Convert strikethrough ~~text~~
-  html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
-  
-  // Convert underline <u>text</u> (keep as is)
-  
-  // Convert line breaks
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = html.replace(/\n/g, '<br/>');
-  
-  // Wrap in paragraphs if not already wrapped
-  if (!html.startsWith('<h1>') && !html.startsWith('<h2>') && !html.startsWith('<p>')) {
-    html = `<p>${html}</p>`;
+  for (const line of lines) {
+    let processedLine = line;
+    
+    // Convert headings
+    if (processedLine.match(/^# (.+)$/)) {
+      processedLine = processedLine.replace(/^# (.+)$/, '<h1>$1</h1>');
+      htmlParts.push(processedLine);
+      continue;
+    }
+    if (processedLine.match(/^## (.+)$/)) {
+      processedLine = processedLine.replace(/^## (.+)$/, '<h2>$1</h2>');
+      htmlParts.push(processedLine);
+      continue;
+    }
+    
+    // Convert images
+    processedLine = processedLine.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="editor-image" />');
+    
+    // Convert videos
+    processedLine = processedLine.replace(/\[video\]\(([^)]+)\)/g, '<div class="editor-video" data-src="$1">[Vídeo]</div>');
+    
+    // Convert links
+    processedLine = processedLine.replace(/(?<!!)\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    
+    // Convert bold **text**
+    processedLine = processedLine.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    
+    // Convert italic *text*
+    processedLine = processedLine.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+    
+    // Convert strikethrough ~~text~~
+    processedLine = processedLine.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+    
+    // Empty line = spacer div, non-empty = paragraph
+    if (processedLine.trim() === '') {
+      htmlParts.push('<div class="editor-spacer"></div>');
+    } else {
+      htmlParts.push(`<p class="editor-paragraph">${processedLine}</p>`);
+    }
   }
   
-  return html;
+  return htmlParts.join('');
 }
 
 // Convert HTML back to markdown for storage
@@ -552,6 +562,14 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
           content: attr(data-placeholder);
           color: hsl(var(--muted-foreground));
           pointer-events: none;
+        }
+        [contenteditable] p,
+        [contenteditable] .editor-paragraph {
+          margin-bottom: 0.75rem;
+          line-height: 1.6;
+        }
+        [contenteditable] .editor-spacer {
+          height: 1rem;
         }
         [contenteditable] .editor-image {
           max-width: 100%;
