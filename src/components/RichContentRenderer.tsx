@@ -73,13 +73,35 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
     const elements: React.ReactNode[] = [];
     let key = 0;
 
+    // Group consecutive non-empty lines into paragraphs, empty lines create breaks
+    let currentParagraph: string[] = [];
+    
+    const flushParagraph = () => {
+      if (currentParagraph.length > 0) {
+        const paragraphText = currentParagraph.join('\n');
+        currentParagraph = [];
+        return paragraphText;
+      }
+      return null;
+    };
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
 
       // Empty line = paragraph break
       if (!trimmedLine) {
-        elements.push(<div key={key++} className="h-4" />);
+        // Flush any accumulated paragraph first
+        const para = flushParagraph();
+        if (para) {
+          elements.push(
+            <p key={key++} className="text-base md:text-lg leading-relaxed text-muted-foreground mb-6">
+              {processInlineFormattingWithBreaks(para)}
+            </p>
+          );
+        }
+        // Add visual break
+        elements.push(<div key={key++} className="h-2" />);
         continue;
       }
 
@@ -159,10 +181,16 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
         continue;
       }
 
-      // Regular paragraph with inline formatting
+      // Accumulate lines for paragraph
+      currentParagraph.push(trimmedLine);
+    }
+
+    // Flush any remaining paragraph
+    const finalPara = flushParagraph();
+    if (finalPara) {
       elements.push(
-        <p key={key++} className="text-base md:text-lg leading-relaxed text-muted-foreground mb-4">
-          {processInlineFormatting(trimmedLine)}
+        <p key={key++} className="text-base md:text-lg leading-relaxed text-muted-foreground mb-6">
+          {processInlineFormattingWithBreaks(finalPara)}
         </p>
       );
     }
@@ -175,6 +203,22 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
       {renderedContent}
     </div>
   );
+}
+
+// Process inline formatting with line breaks preserved as <br/>
+function processInlineFormattingWithBreaks(text: string): React.ReactNode {
+  const lines = text.split('\n');
+  const parts: React.ReactNode[] = [];
+  let key = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (i > 0) {
+      parts.push(<br key={`br-${key++}`} />);
+    }
+    parts.push(<span key={key++}>{processInlineFormatting(lines[i])}</span>);
+  }
+
+  return <>{parts}</>;
 }
 
 // Process inline formatting like **bold**, *italic*, and [links](url)
