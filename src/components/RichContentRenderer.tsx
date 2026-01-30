@@ -133,18 +133,25 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
         continue;
       }
 
-      // Image: ![alt](url) - standalone on its own line
-      const imageMatch = trimmedLine.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+      // Image: ![alt](url) or ![alt](url){width=50%} - standalone on its own line
+      const imageMatch = trimmedLine.match(/^!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)%\})?$/);
       if (imageMatch) {
         const altText = imageMatch[1];
+        const imageUrl = imageMatch[2];
+        const widthPercent = imageMatch[3];
         const hasCaption = altText && altText.toLowerCase() !== 'imagem' && altText.toLowerCase() !== 'image';
+        
+        const imageStyle = widthPercent 
+          ? { width: `${widthPercent}%`, maxWidth: '100%' }
+          : {};
         
         elements.push(
           <figure key={key++} className="my-6">
             <img
-              src={imageMatch[2]}
+              src={imageUrl}
               alt={altText || 'Imagem'}
-              className="w-full max-w-2xl mx-auto rounded-lg shadow-md"
+              className={`mx-auto rounded-lg shadow-md ${!widthPercent ? 'w-full max-w-2xl' : ''}`}
+              style={imageStyle}
               loading="lazy"
             />
             {hasCaption && (
@@ -158,7 +165,8 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
       }
 
       // Check if line contains an image mixed with text - separate them
-      const inlineImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+      // Updated regex to support optional {width=X%}
+      const inlineImageRegex = /!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)%\})?/g;
       const hasInlineImage = inlineImageRegex.test(trimmedLine);
       
       if (hasInlineImage) {
@@ -182,14 +190,21 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
           
           // The image itself - as a block element
           const altText = match[1];
+          const imageUrl = match[2];
+          const widthPercent = match[3];
           const hasCaption = altText && altText.toLowerCase() !== 'imagem' && altText.toLowerCase() !== 'image';
+          
+          const imageStyle = widthPercent 
+            ? { width: `${widthPercent}%`, maxWidth: '100%' }
+            : {};
           
           elements.push(
             <figure key={key++} className="my-6">
               <img
-                src={match[2]}
+                src={imageUrl}
                 alt={altText || 'Imagem'}
-                className="w-full max-w-2xl mx-auto rounded-lg shadow-md"
+                className={`mx-auto rounded-lg shadow-md ${!widthPercent ? 'w-full max-w-2xl' : ''}`}
+                style={imageStyle}
                 loading="lazy"
               />
               {hasCaption && (
