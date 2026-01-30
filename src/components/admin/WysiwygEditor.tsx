@@ -115,23 +115,24 @@ function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '## $1\n');
   
   // Convert images - extract width style if present
-  markdown = markdown.replace(
-    /<img[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[^>]*(?:style="[^"]*width:\s*(\d+)%[^"]*")?[^>]*\/?>/gi,
-    (_, src, alt, width) => width ? `![${alt}](${src}){width=${width}%}` : `![${alt}](${src})`
-  );
-  markdown = markdown.replace(
-    /<img[^>]*alt="([^"]*)"[^>]*src="([^"]+)"[^>]*(?:style="[^"]*width:\s*(\d+)%[^"]*")?[^>]*\/?>/gi,
-    (_, alt, src, width) => width ? `![${alt}](${src}){width=${width}%}` : `![${alt}](${src})`
-  );
-  // Also handle when style comes before src/alt
-  markdown = markdown.replace(
-    /<img[^>]*style="[^"]*width:\s*(\d+)%[^"]*"[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[^>]*\/?>/gi,
-    (_, width, src, alt) => `![${alt}](${src}){width=${width}%}`
-  );
-  markdown = markdown.replace(
-    /<img[^>]*style="[^"]*width:\s*(\d+)%[^"]*"[^>]*alt="([^"]*)"[^>]*src="([^"]+)"[^>]*\/?>/gi,
-    (_, width, alt, src) => `![${alt}](${src}){width=${width}%}`
-  );
+  // Use a more robust approach: capture the whole img tag and parse attributes
+  markdown = markdown.replace(/<img[^>]*\/?>/gi, (imgTag) => {
+    // Extract src
+    const srcMatch = imgTag.match(/src="([^"]+)"/i);
+    const src = srcMatch ? srcMatch[1] : '';
+    
+    // Extract alt
+    const altMatch = imgTag.match(/alt="([^"]*)"/i);
+    const alt = altMatch ? altMatch[1] : 'imagem';
+    
+    // Extract width from style
+    const widthMatch = imgTag.match(/style="[^"]*width:\s*(\d+)%/i);
+    const width = widthMatch ? widthMatch[1] : null;
+    
+    if (!src) return ''; // Invalid image, remove
+    
+    return width ? `![${alt}](${src}){width=${width}%}` : `![${alt}](${src})`;
+  });
   
   // Convert videos
   markdown = markdown.replace(/<div[^>]*class="editor-video"[^>]*data-src="([^"]+)"[^>]*>[\s\S]*?<\/div>/gi, '[video]($1)');
