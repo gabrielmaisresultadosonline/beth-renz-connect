@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Image, Video, Upload, Link, Loader2, Youtube, Bold, Heading1, Heading2, 
-  Smile, Link2, Italic, Underline, Strikethrough 
+  Smile, Link2, Italic, Underline, Strikethrough, ZoomIn, ZoomOut, RotateCcw, Trash2
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -18,6 +18,9 @@ interface WysiwygEditorProps {
   placeholder?: string;
   minHeight?: number;
 }
+
+// Image size presets (percentage of container width)
+const IMAGE_SIZES = [25, 50, 75, 100] as const;
 
 const COMMON_EMOJIS = [
   '😀', '😊', '🎉', '👏', '🚀', '✨', '💡', '🔥', '❤️', '👍',
@@ -48,8 +51,14 @@ function markdownToHtml(markdown: string): string {
       continue;
     }
     
-    // Convert images
-    processedLine = processedLine.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="editor-image" />');
+    // Convert images with optional size: ![alt](url){width=50%}
+    processedLine = processedLine.replace(
+      /!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)%\})?/g, 
+      (_, alt, src, width) => {
+        const style = width ? ` style="width: ${width}%;"` : '';
+        return `<img src="${src}" alt="${alt}" class="editor-image"${style} />`;
+      }
+    );
     
     // Convert videos
     processedLine = processedLine.replace(/\[video\]\(([^)]+)\)/g, '<div class="editor-video" data-src="$1">[Vídeo]</div>');
@@ -105,9 +114,24 @@ function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '# $1\n');
   markdown = markdown.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '## $1\n');
   
-  // Convert images
-  markdown = markdown.replace(/<img[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, '![$2]($1)');
-  markdown = markdown.replace(/<img[^>]*alt="([^"]*)"[^>]*src="([^"]+)"[^>]*\/?>/gi, '![$1]($2)');
+  // Convert images - extract width style if present
+  markdown = markdown.replace(
+    /<img[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[^>]*(?:style="[^"]*width:\s*(\d+)%[^"]*")?[^>]*\/?>/gi,
+    (_, src, alt, width) => width ? `![${alt}](${src}){width=${width}%}` : `![${alt}](${src})`
+  );
+  markdown = markdown.replace(
+    /<img[^>]*alt="([^"]*)"[^>]*src="([^"]+)"[^>]*(?:style="[^"]*width:\s*(\d+)%[^"]*")?[^>]*\/?>/gi,
+    (_, alt, src, width) => width ? `![${alt}](${src}){width=${width}%}` : `![${alt}](${src})`
+  );
+  // Also handle when style comes before src/alt
+  markdown = markdown.replace(
+    /<img[^>]*style="[^"]*width:\s*(\d+)%[^"]*"[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[^>]*\/?>/gi,
+    (_, width, src, alt) => `![${alt}](${src}){width=${width}%}`
+  );
+  markdown = markdown.replace(
+    /<img[^>]*style="[^"]*width:\s*(\d+)%[^"]*"[^>]*alt="([^"]*)"[^>]*src="([^"]+)"[^>]*\/?>/gi,
+    (_, width, alt, src) => `![${alt}](${src}){width=${width}%}`
+  );
   
   // Convert videos
   markdown = markdown.replace(/<div[^>]*class="editor-video"[^>]*data-src="([^"]+)"[^>]*>[\s\S]*?<\/div>/gi, '[video]($1)');
@@ -152,10 +176,80 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
+  const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savedSelectionRef = useRef<Range | null>(null);
   const { toast } = useToast();
+
+  // Handle click on images to select them for resizing
+  const handleEditorClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'IMG' && target.classList.contains('editor-image')) {
+      // Select this image
+      setSelectedImage(target as HTMLImageElement);
+      // Add selected class
+      editorRef.current?.querySelectorAll('.editor-image').forEach(img => {
+        img.classList.remove('editor-image-selected');
+      });
+      target.classList.add('editor-image-selected');
+    } else {
+      // Deselect
+      setSelectedImage(null);
+      editorRef.current?.querySelectorAll('.editor-image').forEach(img => {
+        img.classList.remove('editor-image-selected');
+      });
+    }
+  }, []);
+
+  // Get current image size percentage
+  const getImageSizePercent = (img: HTMLImageElement): number => {
+    const style = img.style.width;
+    if (style && style.endsWith('%')) {
+      return parseInt(style, 10);
+    }
+    return 100; // Default full width
+  };
+
+  // Set image size
+  const setImageSize = (percent: number) => {
+    if (!selectedImage) return;
+    selectedImage.style.width = `${percent}%`;
+    selectedImage.style.height = 'auto';
+    handleInput();
+  };
+
+  // Increase image size
+  const increaseImageSize = () => {
+    if (!selectedImage) return;
+    const current = getImageSizePercent(selectedImage);
+    const nextSize = IMAGE_SIZES.find(s => s > current) || 100;
+    setImageSize(nextSize);
+  };
+
+  // Decrease image size
+  const decreaseImageSize = () => {
+    if (!selectedImage) return;
+    const current = getImageSizePercent(selectedImage);
+    const prevSize = [...IMAGE_SIZES].reverse().find(s => s < current) || 25;
+    setImageSize(prevSize);
+  };
+
+  // Reset image size
+  const resetImageSize = () => {
+    if (!selectedImage) return;
+    selectedImage.style.width = '';
+    selectedImage.style.height = '';
+    handleInput();
+  };
+
+  // Delete selected image
+  const deleteSelectedImage = () => {
+    if (!selectedImage) return;
+    selectedImage.remove();
+    setSelectedImage(null);
+    handleInput();
+  };
 
   // Save cursor position before opening dialogs
   const saveSelection = useCallback(() => {
@@ -611,6 +705,66 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
         </span>
       </div>
 
+      {/* Image resize toolbar - shows when image is selected */}
+      {selectedImage && (
+        <div className="flex items-center gap-1 p-2 bg-primary/10 border border-primary/30 rounded-lg mb-2">
+          <span className="text-xs font-medium text-primary mr-2">📷 Imagem selecionada:</span>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={decreaseImageSize}
+            title="Diminuir tamanho"
+            className="h-7 px-2"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </Button>
+          {IMAGE_SIZES.map(size => (
+            <Button
+              key={size}
+              type="button"
+              variant={getImageSizePercent(selectedImage) === size ? "default" : "outline"}
+              size="sm"
+              onClick={() => setImageSize(size)}
+              className="h-7 px-2 text-xs"
+            >
+              {size}%
+            </Button>
+          ))}
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={increaseImageSize}
+            title="Aumentar tamanho"
+            className="h-7 px-2"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={resetImageSize}
+            title="Tamanho original"
+            className="h-7 px-2"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+          <div className="w-px h-5 bg-border mx-1" />
+          <Button 
+            type="button" 
+            variant="destructive" 
+            size="sm" 
+            onClick={deleteSelectedImage}
+            title="Remover imagem"
+            className="h-7 px-2"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+
       {/* Editor Area */}
       <div className="relative">
         <div
@@ -622,6 +776,7 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
           onPaste={handlePaste}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
+          onClick={handleEditorClick}
           data-placeholder={placeholder}
           suppressContentEditableWarning
         />
@@ -655,6 +810,16 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
           height: auto;
           border-radius: 0.5rem;
           margin: 0.5rem 0;
+          cursor: pointer;
+          transition: outline 0.15s ease;
+        }
+        [contenteditable] .editor-image:hover {
+          outline: 2px solid hsl(var(--primary) / 0.3);
+          outline-offset: 2px;
+        }
+        [contenteditable] .editor-image-selected {
+          outline: 3px solid hsl(var(--primary));
+          outline-offset: 2px;
         }
         [contenteditable] .editor-video {
           background: hsl(var(--secondary));
