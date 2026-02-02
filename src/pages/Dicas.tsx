@@ -31,15 +31,48 @@ export default function Dicas() {
     fetchTips();
   }, []);
 
-  // Helper to get a preview snippet from content (strip markdown images/videos)
+  // Helper to get a preview snippet from content (strip ALL HTML and markdown)
   const getPreview = (content: string, maxLength = 120) => {
-    const cleaned = content
-      .replace(/!\[.*?\]\(.*?\)/g, '')
-      .replace(/\[video\]\(.*?\)/g, '')
-      .replace(/#{1,6}\s/g, '')
-      .replace(/\*\*/g, '')
-      .replace(/\n+/g, ' ')
-      .trim();
+    let cleaned = content;
+    
+    // Remove ALL HTML tags with their attributes (including inline styles)
+    cleaned = cleaned.replace(/<[^>]+>/g, '');
+    
+    // Remove markdown images and videos
+    cleaned = cleaned.replace(/!\[.*?\]\(.*?\)(\{width=\d+%\})?/g, '');
+    cleaned = cleaned.replace(/\[video\]\(.*?\)/g, '');
+    
+    // Remove markdown headings
+    cleaned = cleaned.replace(/#{1,6}\s/g, '');
+    
+    // Remove markdown formatting
+    cleaned = cleaned.replace(/\*\*/g, '');
+    cleaned = cleaned.replace(/\*/g, '');
+    cleaned = cleaned.replace(/~~/g, '');
+    cleaned = cleaned.replace(/<\/?u>/g, '');
+    
+    // Remove markdown links but keep text
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    
+    // Clean up CSS/style remnants that might appear as text
+    cleaned = cleaned.replace(/style="[^"]*"/gi, '');
+    cleaned = cleaned.replace(/margin[^:]*:[^;]+;?/gi, '');
+    cleaned = cleaned.replace(/padding[^:]*:[^;]+;?/gi, '');
+    cleaned = cleaned.replace(/border[^:]*:[^;]+;?/gi, '');
+    cleaned = cleaned.replace(/font[^:]*:[^;]+;?/gi, '');
+    cleaned = cleaned.replace(/color:[^;]+;?/gi, '');
+    cleaned = cleaned.replace(/background[^:]*:[^;]+;?/gi, '');
+    
+    // Clean HTML entities
+    cleaned = cleaned.replace(/&nbsp;/g, ' ');
+    cleaned = cleaned.replace(/&amp;/g, '&');
+    cleaned = cleaned.replace(/&lt;/g, '<');
+    cleaned = cleaned.replace(/&gt;/g, '>');
+    cleaned = cleaned.replace(/&quot;/g, '"');
+    
+    // Normalize whitespace
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    
     return cleaned.length > maxLength ? cleaned.slice(0, maxLength) + '...' : cleaned;
   };
 
