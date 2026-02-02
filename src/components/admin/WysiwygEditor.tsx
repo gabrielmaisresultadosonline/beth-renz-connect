@@ -360,35 +360,50 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
         : `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `uploads/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('media')
-        .upload(filePath, file, { upsert: false });
+      const isAlreadyExistsError = (err: any) => {
+        const msg = String(err?.message || '');
+        const status = (err?.statusCode ?? err?.status) as number | undefined;
+        return status === 409 || /already exists|existente|exists/i.test(msg);
+      };
 
-      if (uploadError) throw uploadError;
+      const attemptUpload = async (upsert: boolean) => {
+        return await supabase.storage
+          .from('media')
+          .upload(filePath, file, {
+            upsert,
+            cacheControl: '3600',
+          });
+      };
+
+      const { error: uploadError } = await attemptUpload(false);
+
+      // Se já existir e estamos preservando o nome original, substitui automaticamente.
+      if (uploadError) {
+        if (preserveOriginalName && isAlreadyExistsError(uploadError)) {
+          const { error: overwriteError } = await attemptUpload(true);
+          if (overwriteError) throw overwriteError;
+          toast({
+            title: 'Arquivo substituído',
+            description: `O arquivo existente foi atualizado: ${fileName}`,
+          });
+        } else {
+          throw uploadError;
+        }
+      } else {
+        toast({
+          title: 'Upload concluído',
+          description: `Arquivo salvo como: ${fileName}`
+        });
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from('media')
         .getPublicUrl(filePath);
 
-      toast({
-        title: 'Upload concluído',
-        description: `Arquivo salvo como: ${fileName}`
-      });
-      
       return publicUrl;
     } catch (error: any) {
-      // If user asked to preserve name, collisions are expected.
       const msg = String(error?.message || 'Erro no upload');
-      const alreadyExists = /already exists|existente|exists/i.test(msg);
-      if (options?.preserveOriginalName && alreadyExists) {
-        toast({
-          title: 'Esse nome já existe',
-          description: 'Renomeie o arquivo no seu computador e tente novamente (Upload mantém o nome original).',
-          variant: 'destructive'
-        });
-      } else {
-        toast({ title: 'Erro no upload', description: msg, variant: 'destructive' });
-      }
+      toast({ title: 'Erro no upload', description: msg, variant: 'destructive' });
       return null;
     } finally {
       setUploading(false);
