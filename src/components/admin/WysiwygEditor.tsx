@@ -94,6 +94,27 @@ function htmlToMarkdown(html: string): string {
   
   let markdown = html;
   
+  // CRITICAL: Strip ALL inline styles first - this prevents raw HTML from appearing on public pages
+  // Remove style attributes entirely from all tags
+  markdown = markdown.replace(/\s+style="[^"]*"/gi, '');
+  markdown = markdown.replace(/\s+style='[^']*'/gi, '');
+  
+  // Remove class attributes that aren't our editor classes
+  markdown = markdown.replace(/\s+class="(?!editor-)[^"]*"/gi, '');
+  markdown = markdown.replace(/\s+class='(?!editor-)[^']*'/gi, '');
+  
+  // Remove other common attributes that shouldn't be in content
+  markdown = markdown.replace(/\s+data-[a-z-]+="[^"]*"/gi, '');
+  markdown = markdown.replace(/\s+id="[^"]*"/gi, '');
+  markdown = markdown.replace(/\s+lang="[^"]*"/gi, '');
+  markdown = markdown.replace(/\s+dir="[^"]*"/gi, '');
+  
+  // Remove font tags entirely (keep content)
+  markdown = markdown.replace(/<font[^>]*>([\s\S]*?)<\/font>/gi, '$1');
+  
+  // Remove span tags with any attributes (keep content) - these often have inline styles
+  markdown = markdown.replace(/<span[^>]*>([\s\S]*?)<\/span>/gi, '$1');
+  
   // First, normalize the HTML - remove line breaks inside formatting tags
   markdown = markdown.replace(/<(strong|b|em|i|del|s|strike|u)>\s*/gi, '<$1>');
   markdown = markdown.replace(/\s*<\/(strong|b|em|i|del|s|strike|u)>/gi, '</$1>');
@@ -109,7 +130,7 @@ function htmlToMarkdown(html: string): string {
   
   // Remove contenteditable artifacts
   markdown = markdown.replace(/<div><br><\/div>/gi, '\n');
-  markdown = markdown.replace(/<div>/gi, '\n');
+  markdown = markdown.replace(/<div[^>]*>/gi, '\n');
   markdown = markdown.replace(/<\/div>/gi, '');
   
   // Convert headings (allow multiline content with [\s\S])
@@ -127,8 +148,8 @@ function htmlToMarkdown(html: string): string {
     const altMatch = imgTag.match(/alt="([^"]*)"/i);
     const alt = altMatch ? altMatch[1] : 'imagem';
     
-    // Extract width from style
-    const widthMatch = imgTag.match(/style="[^"]*width:\s*(\d+)%/i);
+    // Extract width from style (may have been stripped, but check anyway)
+    const widthMatch = imgTag.match(/width:\s*(\d+)%/i) || imgTag.match(/width="(\d+)%"/i);
     const width = widthMatch ? widthMatch[1] : null;
     
     if (!src) return ''; // Invalid image, remove
@@ -144,24 +165,32 @@ function htmlToMarkdown(html: string): string {
   // Convert links (allow multiline content)
   markdown = markdown.replace(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
   
-  // Convert formatting (use [\s\S]*? for multiline support, but be non-greedy)
-  markdown = markdown.replace(/<strong>([\s\S]*?)<\/strong>/gi, '**$1**');
-  markdown = markdown.replace(/<b>([\s\S]*?)<\/b>/gi, '**$1**');
-  markdown = markdown.replace(/<em>([\s\S]*?)<\/em>/gi, '*$1*');
-  markdown = markdown.replace(/<i>([\s\S]*?)<\/i>/gi, '*$1*');
-  markdown = markdown.replace(/<del>([\s\S]*?)<\/del>/gi, '~~$1~~');
-  markdown = markdown.replace(/<strike>([\s\S]*?)<\/strike>/gi, '~~$1~~');
-  markdown = markdown.replace(/<s>([\s\S]*?)<\/s>/gi, '~~$1~~');
-  // Keep underline as HTML tag
+  // Convert formatting WITH attributes first (e.g., <strong style="...">)
+  markdown = markdown.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**');
+  markdown = markdown.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**');
+  markdown = markdown.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*');
+  markdown = markdown.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*');
+  markdown = markdown.replace(/<del[^>]*>([\s\S]*?)<\/del>/gi, '~~$1~~');
+  markdown = markdown.replace(/<strike[^>]*>([\s\S]*?)<\/strike>/gi, '~~$1~~');
+  markdown = markdown.replace(/<s[^>]*>([\s\S]*?)<\/s>/gi, '~~$1~~');
+  markdown = markdown.replace(/<u[^>]*>([\s\S]*?)<\/u>/gi, '<u>$1</u>');
   
-  // Convert paragraphs and breaks
-  markdown = markdown.replace(/<\/p><p>/gi, '\n\n');
-  markdown = markdown.replace(/<p>/gi, '');
+  // Convert paragraphs with any attributes and breaks
+  markdown = markdown.replace(/<\/p>\s*<p[^>]*>/gi, '\n\n');
+  markdown = markdown.replace(/<p[^>]*>/gi, '');
   markdown = markdown.replace(/<\/p>/gi, '\n');
   markdown = markdown.replace(/<br\s*\/?>/gi, '\n');
   
+  // Remove any remaining HTML tags that weren't handled (safety net)
+  // This catches orphaned tags like <font>, <span>, etc.
+  markdown = markdown.replace(/<[^>]+>/g, '');
+  
   // Clean up extra whitespace
   markdown = markdown.replace(/&nbsp;/g, ' ');
+  markdown = markdown.replace(/&amp;/g, '&');
+  markdown = markdown.replace(/&lt;/g, '<');
+  markdown = markdown.replace(/&gt;/g, '>');
+  markdown = markdown.replace(/&quot;/g, '"');
   
   // Remove multiple consecutive newlines (more than 2)
   markdown = markdown.replace(/\n{3,}/g, '\n\n');
