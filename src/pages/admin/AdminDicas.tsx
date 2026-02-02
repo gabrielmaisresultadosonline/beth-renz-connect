@@ -179,7 +179,26 @@ export default function AdminDicas() {
                         {item.published ? 'Publicada' : 'Rascunho'}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{item.content.replace(/!\[.*?\]\(.*?\)/g, '').replace(/\[video\]\(.*?\)/g, '').slice(0, 150)}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {item.content
+                        .replace(/<[^>]+>/g, '') // Remove all HTML tags
+                        .replace(/style="[^"]*"/gi, '') // Remove style attributes
+                        .replace(/--tw-[^:;]+:[^;]+;?/gi, '') // Remove Tailwind CSS vars
+                        .replace(/margin[^:]*:[^;]+;?/gi, '')
+                        .replace(/padding[^:]*:[^;]+;?/gi, '')
+                        .replace(/border[^:]*:[^;]+;?/gi, '')
+                        .replace(/font[^:]*:[^;]+;?/gi, '')
+                        .replace(/color:[^;]+;?/gi, '')
+                        .replace(/background[^:]*:[^;]+;?/gi, '')
+                        .replace(/!\[.*?\]\(.*?\)(\{width=\d+%\})?/g, '') // Remove markdown images
+                        .replace(/\[video\]\(.*?\)/g, '') // Remove video embeds
+                        .replace(/#{1,6}\s/g, '') // Remove markdown headings
+                        .replace(/\*\*/g, '').replace(/\*/g, '') // Remove bold/italic
+                        .replace(/&nbsp;/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .slice(0, 150)}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">{format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')}</p>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
