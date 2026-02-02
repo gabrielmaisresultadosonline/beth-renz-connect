@@ -57,7 +57,8 @@ function markdownToHtml(markdown: string): string {
       /!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)%\})?/g, 
       (_, alt, src, width) => {
         const style = width ? ` style="width: ${width}%;"` : '';
-        return `<img src="${src}" alt="${alt}" class="editor-image"${style} />`;
+        // NOTE: Make images non-editable and draggable to avoid caret/text inside image blocks.
+        return `<img src="${src}" alt="${alt}" class="editor-image" draggable="true" contenteditable="false"${style} />`;
       }
     );
     
@@ -131,8 +132,10 @@ function htmlToMarkdown(html: string): string {
     const width = widthMatch ? widthMatch[1] : null;
     
     if (!src) return ''; // Invalid image, remove
-    
-    return width ? `![${alt}](${src}){width=${width}%}` : `![${alt}](${src})`;
+
+    // Force images to be stored as their own block line(s) so public/admin never wraps text over them.
+    const token = width ? `![${alt}](${src}){width=${width}%}` : `![${alt}](${src})`;
+    return `\n\n${token}\n\n`;
   });
   
   // Convert videos
@@ -184,6 +187,120 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savedSelectionRef = useRef<Range | null>(null);
   const { toast } = useToast();
+
+  const createEmptyParagraph = useCallback(() => {
+    const p = document.createElement('p');
+    p.className = 'editor-paragraph';
+    p.appendChild(document.createElement('br'));
+    return p;
+  }, []);
+
+  const setCaretToStart = useCallback((el: HTMLElement) => {
+    const selection = window.getSelection();
+    if (!selection) return;
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }, []);
+
+  const hasMeaningfulContent = useCallback((nodes: ChildNode[]) => {
+    return nodes.some((n) => {
+      if (n.nodeType === Node.TEXT_NODE) return !!n.textContent?.trim();
+      if (n.nodeType === Node.ELEMENT_NODE) {
+        const el = n as HTMLElement;
+        if (el.tagName === 'BR') return false;
+        if (el.tagName === 'IMG') return false;
+        if (el.classList.contains('editor-video')) return true;
+        // Any other element counts if it has real content.
+        return !!el.textContent?.trim() || !!el.querySelector('img, .editor-video');
+      }
+      return false;
+    });
+  }, []);
+
+  // Hard guarantee: images are always isolated in their own paragraph, never mixed with text.
+  const normalizeImageBlocks = useCallback(() => {
+    const root = editorRef.current;
+    if (!root) return;
+
+    const imgs = Array.from(root.querySelectorAll('img')) as HTMLImageElement[];
+    for (const img of imgs) {
+      img.classList.add('editor-image');
+      img.setAttribute('draggable', 'true');
+      img.setAttribute('contenteditable', 'false');
+
+      let p = img.closest('p') as HTMLParagraphElement | null;
+      if (!p) {
+        const wrapper = document.createElement('p');
+        wrapper.className = 'editor-paragraph';
+        img.parentNode?.insertBefore(wrapper, img);
+        wrapper.appendChild(img);
+        p = wrapper;
+      } else {
+        p.classList.add('editor-paragraph');
+      }
+
+      const children = Array.from(p.childNodes);
+      const imgIndex = children.indexOf(img);
+      if (imgIndex < 0) continue;
+
+      const before = children.slice(0, imgIndex);
+      const after = children.slice(imgIndex + 1);
+      const beforeMeaningful = hasMeaningfulContent(before);
+      const afterMeaningful = hasMeaningfulContent(after);
+      if (!beforeMeaningful && !afterMeaningful) {
+        // Ensure there's always a paragraph after an image block for continued typing.
+        const nextEl = p.nextElementSibling as HTMLElement | null;
+        if (!nextEl || nextEl.tagName !== 'P') {
+          p.parentNode?.insertBefore(createEmptyParagraph(), p.nextSibling);
+        }
+        continue;
+      }
+
+      // Create an isolated paragraph for the image.
+      const imageP = document.createElement('p');
+      imageP.className = 'editor-paragraph';
+      imageP.appendChild(img); // moves img out of current paragraph
+
+      const parent = p.parentNode;
+      if (!parent) continue;
+
+      // Move the after-nodes into a new paragraph (if needed)
+      let afterP: HTMLParagraphElement | null = null;
+      if (afterMeaningful) {
+        afterP = document.createElement('p');
+        afterP.className = 'editor-paragraph';
+        for (const node of after) afterP.appendChild(node);
+        if (!afterP.textContent?.trim() && !afterP.querySelector('img, .editor-video')) {
+          afterP.appendChild(document.createElement('br'));
+        }
+      }
+
+      // Place image block: between before and after content.
+      if (beforeMeaningful) {
+        parent.insertBefore(imageP, p.nextSibling);
+      } else {
+        parent.insertBefore(imageP, p);
+      }
+
+      if (afterP) {
+        parent.insertBefore(afterP, imageP.nextSibling);
+      }
+
+      // Clean up empty original paragraph.
+      if (!p.textContent?.trim() && !p.querySelector('img, .editor-video')) {
+        p.remove();
+      }
+
+      // Ensure there's always a paragraph after the image.
+      const nextEl = imageP.nextElementSibling as HTMLElement | null;
+      if (!nextEl || nextEl.tagName !== 'P') {
+        parent.insertBefore(createEmptyParagraph(), imageP.nextSibling);
+      }
+    }
+  }, [createEmptyParagraph, hasMeaningfulContent]);
 
   // Handle click on images to select them for resizing
   const handleEditorClick = useCallback((e: React.MouseEvent) => {
@@ -285,11 +402,51 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
   // Handle input change - moved up so drag handlers can use it
   const handleInput = useCallback(() => {
     if (editorRef.current) {
+      normalizeImageBlocks();
       const html = editorRef.current.innerHTML;
       const markdown = htmlToMarkdown(html);
       onChange(markdown);
     }
-  }, [onChange]);
+  }, [normalizeImageBlocks, onChange]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter') return;
+    const root = editorRef.current;
+    if (!root) return;
+
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    let node: Node | null = range.startContainer;
+    if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+    if (!(node instanceof HTMLElement)) return;
+
+    const p = node.closest('p.editor-paragraph') as HTMLParagraphElement | null;
+    if (!p) return;
+
+    const hasImg = !!p.querySelector('img.editor-image');
+    if (!hasImg) return;
+
+    // If paragraph is effectively an image block, Enter should create a new paragraph below (never inside the image block).
+    const meaningful = hasMeaningfulContent(Array.from(p.childNodes).filter((n) => {
+      if (n.nodeType === Node.TEXT_NODE) return !!n.textContent?.trim();
+      if (n.nodeType === Node.ELEMENT_NODE) {
+        const el = n as HTMLElement;
+        if (el.tagName === 'IMG') return false;
+        if (el.tagName === 'BR') return false;
+        return !!el.textContent?.trim() || !!el.querySelector('img, .editor-video');
+      }
+      return false;
+    }));
+
+    if (!meaningful) {
+      e.preventDefault();
+      const empty = createEmptyParagraph();
+      p.parentNode?.insertBefore(empty, p.nextSibling);
+      setCaretToStart(empty);
+      handleInput();
+    }
+  }, [createEmptyParagraph, handleInput, hasMeaningfulContent, setCaretToStart]);
 
   // Handle drag start for image repositioning
   const handleImageDragStart = useCallback((e: React.DragEvent) => {
@@ -579,18 +736,85 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
     // Small delay to ensure dialog closes and focus is restored
     setTimeout(() => {
       if (!editorRef.current) return;
+
+      // Restore cursor to where the user was when opening the dialog.
+      restoreSelection();
       editorRef.current.focus();
-      
-      // Insert as a block element - wrapped in its own paragraph/div to prevent inline with text
-      if (type === 'image') {
-        // Create image block with proper structure
-        const imageHtml = `<p class="editor-paragraph"><img src="${url}" alt="imagem" class="editor-image" draggable="true" /></p>`;
-        document.execCommand('insertHTML', false, imageHtml);
-      } else {
-        document.execCommand('insertHTML', false, `<p class="editor-paragraph"><div class="editor-video" data-src="${url}">[Vídeo: ${url.includes('youtube') ? 'YouTube' : 'Vídeo'}]</div></p>`);
+
+      const root = editorRef.current;
+      const selection = window.getSelection();
+
+      const createImageParagraph = () => {
+        const p = document.createElement('p');
+        p.className = 'editor-paragraph';
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'imagem';
+        img.className = 'editor-image';
+        img.setAttribute('draggable', 'true');
+        img.setAttribute('contenteditable', 'false');
+        p.appendChild(img);
+        return p;
+      };
+
+      const createVideoParagraph = () => {
+        const p = document.createElement('p');
+        p.className = 'editor-paragraph';
+        const div = document.createElement('div');
+        div.className = 'editor-video';
+        div.setAttribute('data-src', url);
+        div.setAttribute('contenteditable', 'false');
+        div.textContent = `[Vídeo: ${url.includes('youtube') ? 'YouTube' : 'Vídeo'}]`;
+        p.appendChild(div);
+        return p;
+      };
+
+      const block = type === 'image' ? createImageParagraph() : createVideoParagraph();
+
+      // Default: append at end.
+      let insertAfterEl: HTMLElement | null = null;
+      if (selection?.rangeCount) {
+        const range = selection.getRangeAt(0);
+        let n: Node | null = range.startContainer;
+        if (n.nodeType === Node.TEXT_NODE) n = n.parentNode;
+        if (n instanceof HTMLElement) {
+          insertAfterEl = (n.closest('p.editor-paragraph, h1, h2, .editor-spacer') as HTMLElement | null);
+        }
+
+        // If we're inside a paragraph, split it at cursor so text-after goes below the inserted block.
+        if (insertAfterEl?.tagName === 'P' && insertAfterEl.classList.contains('editor-paragraph') && selection.rangeCount) {
+          const p = insertAfterEl as HTMLParagraphElement;
+          if (p.contains(range.startContainer)) {
+            const afterRange = range.cloneRange();
+            afterRange.setEnd(p, p.childNodes.length);
+            const afterFrag = afterRange.extractContents();
+            const hasAfter = hasMeaningfulContent(Array.from(afterFrag.childNodes));
+            if (hasAfter) {
+              const afterP = document.createElement('p');
+              afterP.className = 'editor-paragraph';
+              afterP.appendChild(afterFrag);
+              p.parentNode?.insertBefore(afterP, p.nextSibling);
+              // Insert the media block between before and after.
+              p.parentNode?.insertBefore(block, afterP);
+              setCaretToStart(afterP);
+              handleInput();
+              return;
+            }
+          }
+        }
       }
+
+      if (insertAfterEl && insertAfterEl.parentNode) {
+        insertAfterEl.parentNode.insertBefore(block, insertAfterEl.nextSibling);
+      } else {
+        root.appendChild(block);
+      }
+
+      // Ensure there's always a paragraph below to continue typing.
+      const empty = createEmptyParagraph();
+      block.parentNode?.insertBefore(empty, block.nextSibling);
+      setCaretToStart(empty);
       
-      // Trigger input event to update state
       handleInput();
     }, 100);
   };
@@ -956,6 +1180,7 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
           className="w-full rounded-b-lg border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-auto prose prose-sm max-w-none"
           style={{ minHeight: `${minHeight}px` }}
           onInput={handleInput}
+          onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           onDrop={handleEditorDrop}
           onDragOver={handleEditorDragOver}
