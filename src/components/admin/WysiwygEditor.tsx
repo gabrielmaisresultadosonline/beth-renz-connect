@@ -8,7 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Image, Video, Upload, Link, Loader2, Youtube, Bold, Heading1, Heading2, 
-  Smile, Link2, Italic, Underline, Strikethrough, ZoomIn, ZoomOut, RotateCcw, Trash2
+  Smile, Link2, Italic, Underline, Strikethrough, ZoomIn, ZoomOut, RotateCcw, Trash2,
+  ArrowUp, ArrowDown, GripVertical
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -178,6 +179,7 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
+  const [draggingImage, setDraggingImage] = useState<HTMLImageElement | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savedSelectionRef = useRef<Range | null>(null);
@@ -252,6 +254,172 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
     handleInput();
   };
 
+  // Move image up (before previous paragraph)
+  const moveImageUp = (img: HTMLImageElement) => {
+    const container = img.parentElement;
+    if (!container) return;
+    
+    // Find previous sibling element
+    const prevSibling = container.previousElementSibling;
+    if (prevSibling && editorRef.current) {
+      container.parentNode?.insertBefore(container, prevSibling);
+      handleInput();
+      toast({ title: 'Imagem movida para cima' });
+    }
+  };
+
+  // Move image down (after next paragraph)
+  const moveImageDown = (img: HTMLImageElement) => {
+    const container = img.parentElement;
+    if (!container) return;
+    
+    // Find next sibling element
+    const nextSibling = container.nextElementSibling;
+    if (nextSibling && editorRef.current) {
+      container.parentNode?.insertBefore(nextSibling, container);
+      handleInput();
+      toast({ title: 'Imagem movida para baixo' });
+    }
+  };
+
+  // Handle input change - moved up so drag handlers can use it
+  const handleInput = useCallback(() => {
+    if (editorRef.current) {
+      const html = editorRef.current.innerHTML;
+      const markdown = htmlToMarkdown(html);
+      onChange(markdown);
+    }
+  }, [onChange]);
+
+  // Handle drag start for image repositioning
+  const handleImageDragStart = useCallback((e: React.DragEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'IMG' && target.classList.contains('editor-image')) {
+      e.stopPropagation();
+      setDraggingImage(target as HTMLImageElement);
+      target.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', 'image-reorder');
+    }
+  }, []);
+
+  // Handle drag end for image repositioning
+  const handleImageDragEnd = useCallback((e: React.DragEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'IMG') {
+      target.classList.remove('dragging');
+    }
+    setDraggingImage(null);
+    // Remove all drop target indicators
+    editorRef.current?.querySelectorAll('.editor-image-drop-target').forEach(el => {
+      el.classList.remove('editor-image-drop-target');
+    });
+  }, []);
+
+  // Handle drag over for showing drop indicator
+  const handleEditorDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    
+    // If we're dragging an internal image for repositioning
+    if (draggingImage) {
+      e.dataTransfer.dropEffect = 'move';
+      
+      // Find the closest paragraph or block element to show drop indicator
+      const target = e.target as HTMLElement;
+      const editorEl = editorRef.current;
+      if (!editorEl) return;
+      
+      // Remove previous indicators
+      editorEl.querySelectorAll('.editor-image-drop-target').forEach(el => {
+        el.classList.remove('editor-image-drop-target');
+      });
+      
+      // Find the block element we're hovering over
+      let blockEl: HTMLElement | null = target;
+      while (blockEl && blockEl !== editorEl) {
+        if (blockEl.tagName === 'P' || blockEl.classList.contains('editor-paragraph') || 
+            blockEl.tagName === 'H1' || blockEl.tagName === 'H2' ||
+            blockEl.classList.contains('editor-spacer')) {
+          blockEl.classList.add('editor-image-drop-target');
+          break;
+        }
+        blockEl = blockEl.parentElement;
+      }
+    }
+  }, [draggingImage]);
+
+  // Handle drop for image repositioning or new file upload
+  const handleEditorDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    
+    // Remove drop indicators
+    editorRef.current?.querySelectorAll('.editor-image-drop-target').forEach(el => {
+      el.classList.remove('editor-image-drop-target');
+    });
+    
+    // If we're repositioning an existing image
+    if (draggingImage && e.dataTransfer.getData('text/plain') === 'image-reorder') {
+      const target = e.target as HTMLElement;
+      const editorEl = editorRef.current;
+      if (!editorEl) return;
+      
+      // Find the block element we're dropping on
+      let dropTarget: HTMLElement | null = target;
+      while (dropTarget && dropTarget !== editorEl) {
+        if (dropTarget.tagName === 'P' || dropTarget.classList.contains('editor-paragraph') || 
+            dropTarget.tagName === 'H1' || dropTarget.tagName === 'H2' ||
+            dropTarget.classList.contains('editor-spacer')) {
+          break;
+        }
+        dropTarget = dropTarget.parentElement;
+      }
+      
+      if (dropTarget && dropTarget !== editorEl) {
+        // Get the image's parent container (usually a <p>)
+        const imageContainer = draggingImage.parentElement;
+        
+        // Insert the image (wrapped in its own paragraph) before the drop target
+        const newParagraph = document.createElement('p');
+        newParagraph.className = 'editor-paragraph';
+        newParagraph.appendChild(draggingImage.cloneNode(true));
+        
+        dropTarget.parentNode?.insertBefore(newParagraph, dropTarget);
+        
+        // Remove the old image container if it's now empty or only has the image
+        if (imageContainer) {
+          // Remove original image
+          draggingImage.remove();
+          // If container is now empty, remove it too
+          if (!imageContainer.textContent?.trim() && !imageContainer.querySelector('img, video, .editor-video')) {
+            imageContainer.remove();
+          }
+        }
+        
+        handleInput();
+        toast({
+          title: 'Imagem reposicionada',
+          description: 'A imagem foi movida para a nova posição'
+        });
+      }
+      
+      setDraggingImage(null);
+      return;
+    }
+    
+    // Otherwise, handle new file upload
+    const files = e.dataTransfer?.files;
+    if (!files?.length) return;
+
+    const file = files[0];
+    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+      const url = await uploadFile(file, { preserveOriginalName: true });
+      if (url) {
+        const type = file.type.startsWith('video/') ? 'video' : 'image';
+        insertMedia(url, type);
+      }
+    }
+  }, [draggingImage, handleInput, toast]);
+
   // Save cursor position before opening dialogs
   const saveSelection = useCallback(() => {
     const selection = window.getSelection();
@@ -281,14 +449,6 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
       }
     }
   }, []);
-
-  const handleInput = useCallback(() => {
-    if (editorRef.current) {
-      const html = editorRef.current.innerHTML;
-      const markdown = htmlToMarkdown(html);
-      onChange(markdown);
-    }
-  }, [onChange]);
 
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -418,29 +578,16 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
     
     // Small delay to ensure dialog closes and focus is restored
     setTimeout(() => {
-      // Try to restore saved cursor position
-      if (savedSelectionRef.current && editorRef.current) {
-        editorRef.current.focus();
-        const selection = window.getSelection();
-        if (selection) {
-          selection.removeAllRanges();
-          selection.addRange(savedSelectionRef.current);
-        }
-      } else if (editorRef.current) {
-        // If no saved selection, place cursor at end
-        editorRef.current.focus();
-        const selection = window.getSelection();
-        if (selection) {
-          selection.selectAllChildren(editorRef.current);
-          selection.collapseToEnd();
-        }
-      }
+      if (!editorRef.current) return;
+      editorRef.current.focus();
       
-      // Now insert the content
+      // Insert as a block element - wrapped in its own paragraph/div to prevent inline with text
       if (type === 'image') {
-        document.execCommand('insertHTML', false, `<img src="${url}" alt="imagem" class="editor-image" />`);
+        // Create image block with proper structure
+        const imageHtml = `<p class="editor-paragraph"><img src="${url}" alt="imagem" class="editor-image" draggable="true" /></p>`;
+        document.execCommand('insertHTML', false, imageHtml);
       } else {
-        document.execCommand('insertHTML', false, `<div class="editor-video" data-src="${url}">[Vídeo: ${url.includes('youtube') ? 'YouTube' : 'Vídeo'}]</div>`);
+        document.execCommand('insertHTML', false, `<p class="editor-paragraph"><div class="editor-video" data-src="${url}">[Vídeo: ${url.includes('youtube') ? 'YouTube' : 'Vídeo'}]</div></p>`);
       }
       
       // Trigger input event to update state
@@ -481,21 +628,6 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
     }
   }, []);
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    const files = e.dataTransfer?.files;
-    if (!files?.length) return;
-
-    const file = files[0];
-    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-      // Arrastar e soltar: manter o nome original no link
-      const url = await uploadFile(file, { preserveOriginalName: true });
-      if (url) {
-        const type = file.type.startsWith('video/') ? 'video' : 'image';
-        insertMedia(url, type);
-      }
-    }
-  }, []);
 
   const parseYoutubeUrl = (url: string): string | null => {
     const patterns = [
@@ -723,8 +855,37 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
 
       {/* Image resize toolbar - shows when image is selected */}
       {selectedImage && (
-        <div className="flex items-center gap-1 p-2 bg-primary/10 border border-primary/30 rounded-lg mb-2">
-          <span className="text-xs font-medium text-primary mr-2">📷 Imagem selecionada:</span>
+        <div className="flex flex-wrap items-center gap-1 p-2 bg-primary/10 border border-primary/30 rounded-lg mb-2">
+          <span className="text-xs font-medium text-primary mr-2 flex items-center gap-1">
+            <GripVertical className="h-3 w-3" />
+            Imagem selecionada:
+          </span>
+          
+          {/* Move buttons */}
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={() => moveImageUp(selectedImage)}
+            title="Mover para cima"
+            className="h-7 px-2"
+          >
+            <ArrowUp className="h-3.5 w-3.5" />
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={() => moveImageDown(selectedImage)}
+            title="Mover para baixo"
+            className="h-7 px-2"
+          >
+            <ArrowDown className="h-3.5 w-3.5" />
+          </Button>
+          
+          <div className="w-px h-5 bg-border mx-1" />
+          
+          {/* Size buttons */}
           <Button 
             type="button" 
             variant="outline" 
@@ -767,7 +928,9 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
           >
             <RotateCcw className="h-3.5 w-3.5" />
           </Button>
+          
           <div className="w-px h-5 bg-border mx-1" />
+          
           <Button 
             type="button" 
             variant="destructive" 
@@ -778,6 +941,10 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
+          
+          <span className="text-[10px] text-muted-foreground ml-auto hidden sm:inline">
+            💡 Arraste a imagem para reposicionar
+          </span>
         </div>
       )}
 
@@ -790,8 +957,10 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
           style={{ minHeight: `${minHeight}px` }}
           onInput={handleInput}
           onPaste={handlePaste}
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleEditorDrop}
+          onDragOver={handleEditorDragOver}
+          onDragStart={handleImageDragStart}
+          onDragEnd={handleImageDragEnd}
           onClick={handleEditorClick}
           data-placeholder={placeholder}
           suppressContentEditableWarning
@@ -821,13 +990,18 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
         [contenteditable] .editor-spacer {
           height: 1rem;
         }
+        /* CRITICAL: Images always as block elements, never inline with text */
         [contenteditable] .editor-image {
+          display: block !important;
           max-width: 100%;
           height: auto;
           border-radius: 0.5rem;
-          margin: 0.5rem 0;
-          cursor: pointer;
-          transition: outline 0.15s ease;
+          margin: 1rem auto;
+          cursor: grab;
+          transition: outline 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        [contenteditable] .editor-image:active {
+          cursor: grabbing;
         }
         [contenteditable] .editor-image:hover {
           outline: 2px solid hsl(var(--primary) / 0.3);
@@ -837,12 +1011,21 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
           outline: 3px solid hsl(var(--primary));
           outline-offset: 2px;
         }
+        [contenteditable] .editor-image.dragging {
+          opacity: 0.5;
+          transform: scale(0.98);
+        }
+        [contenteditable] .editor-image-drop-target {
+          border-top: 3px solid hsl(var(--primary));
+          padding-top: 0.5rem;
+        }
         [contenteditable] .editor-video {
+          display: block;
           background: hsl(var(--secondary));
           padding: 1rem;
           border-radius: 0.5rem;
           text-align: center;
-          margin: 0.5rem 0;
+          margin: 1rem auto;
           color: hsl(var(--muted-foreground));
         }
         [contenteditable] h1 {
