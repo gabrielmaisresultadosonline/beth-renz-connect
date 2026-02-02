@@ -9,7 +9,38 @@ interface RichContentRendererProps {
 function preprocessContent(content: string): string {
   let processed = content;
   
-  // FIRST: Clean up any raw HTML tags that shouldn't be in the content
+  // CRITICAL FIRST STEP: Remove ALL inline styles - this is what causes raw code to appear
+  // This catches things like: <p style="margin-bottom: 1.25rem; padding: 0px; ...">
+  processed = processed.replace(/\s+style="[^"]*"/gi, '');
+  processed = processed.replace(/\s+style='[^']*'/gi, '');
+  
+  // Remove all class attributes except our editor classes
+  processed = processed.replace(/\s+class="(?!editor-)[^"]*"/gi, '');
+  processed = processed.replace(/\s+class='(?!editor-)[^']*'/gi, '');
+  
+  // Remove font-family, font-size, color and other inline style remnants that might appear as text
+  processed = processed.replace(/font-family:[^;>"']+;?/gi, '');
+  processed = processed.replace(/font-size:[^;>"']+;?/gi, '');
+  processed = processed.replace(/font-weight:[^;>"']+;?/gi, '');
+  processed = processed.replace(/line-height:[^;>"']+;?/gi, '');
+  processed = processed.replace(/margin[^:]*:[^;>"']+;?/gi, '');
+  processed = processed.replace(/padding[^:]*:[^;>"']+;?/gi, '');
+  processed = processed.replace(/border[^:]*:[^;>"']+;?/gi, '');
+  processed = processed.replace(/color:[^;>"']+;?/gi, '');
+  processed = processed.replace(/background[^:]*:[^;>"']+;?/gi, '');
+  processed = processed.replace(/vertical-align:[^;>"']+;?/gi, '');
+  processed = processed.replace(/text-align:[^;>"']+;?/gi, '');
+  
+  // Remove common data attributes
+  processed = processed.replace(/\s+data-[a-z-]+="[^"]*"/gi, '');
+  processed = processed.replace(/\s+id="[^"]*"/gi, '');
+  processed = processed.replace(/\s+lang="[^"]*"/gi, '');
+  processed = processed.replace(/\s+dir="[^"]*"/gi, '');
+  
+  // Remove font tags entirely (keep content)
+  processed = processed.replace(/<font[^>]*>([\s\S]*?)<\/font>/gi, '$1');
+  
+  // Clean up any raw HTML tags that shouldn't be in the content
   // Remove editor-specific divs and convert to newlines
   processed = processed.replace(/<div[^>]*class="editor-spacer"[^>]*><\/div>/gi, '\n');
   processed = processed.replace(/<div[^>]*class='editor-spacer'[^>]*><\/div>/gi, '\n');
@@ -22,7 +53,7 @@ function preprocessContent(content: string): string {
   processed = processed.replace(/<div[^>]*>/gi, '\n');
   processed = processed.replace(/<\/div>/gi, '');
   
-  // Clean generic paragraphs
+  // Clean generic paragraphs (with any remaining attributes)
   processed = processed.replace(/<p[^>]*>/gi, '');
   processed = processed.replace(/<\/p>/gi, '\n');
   
@@ -34,11 +65,14 @@ function preprocessContent(content: string): string {
   
   // IMPORTANT: Clean strong/em/b/i tags WITH attributes/styles first (convert to markdown)
   // This handles cases like <strong style="...">text</strong>
-  processed = processed.replace(/<strong[^>]+>([\s\S]*?)<\/strong>/gi, '**$1**');
-  processed = processed.replace(/<b[^>]+>([\s\S]*?)<\/b>/gi, '**$1**');
-  processed = processed.replace(/<em[^>]+>([\s\S]*?)<\/em>/gi, '*$1*');
-  processed = processed.replace(/<i[^>]+>([\s\S]*?)<\/i>/gi, '*$1*');
-  processed = processed.replace(/<u[^>]+>([\s\S]*?)<\/u>/gi, '<u>$1</u>');
+  processed = processed.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**');
+  processed = processed.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**');
+  processed = processed.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*');
+  processed = processed.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*');
+  processed = processed.replace(/<u[^>]*>([\s\S]*?)<\/u>/gi, '<u>$1</u>');
+  processed = processed.replace(/<del[^>]*>([\s\S]*?)<\/del>/gi, '~~$1~~');
+  processed = processed.replace(/<s[^>]*>([\s\S]*?)<\/s>/gi, '~~$1~~');
+  processed = processed.replace(/<strike[^>]*>([\s\S]*?)<\/strike>/gi, '~~$1~~');
   
   // Clean up any whitespace/newlines inside HTML tags (without attributes)
   processed = processed.replace(/<(strong|em|b|i|u|del|s|strike)>([\s\S]*?)<\/\1>/gi, (match, tag, inner) => {
@@ -75,6 +109,10 @@ function preprocessContent(content: string): string {
   // e.g., <strong style="..."> without closing
   processed = processed.replace(/<(strong|em|b|i|u|del|s|strike|span)[^>]*>(?![^<]*<\/\1>)/gi, '');
   
+  // SAFETY NET: Remove any remaining HTML-like tags that weren't handled
+  // This catches stray tags that might show as raw code
+  processed = processed.replace(/<[^>]*>/g, '');
+  
   // Remove any remaining empty formatting
   processed = processed.replace(/\*\*\s*\*\*/g, '');
   processed = processed.replace(/\*\s*\*/g, '');
@@ -88,6 +126,7 @@ function preprocessContent(content: string): string {
   processed = processed.replace(/&amp;/g, '&');
   processed = processed.replace(/&lt;/g, '<');
   processed = processed.replace(/&gt;/g, '>');
+  processed = processed.replace(/&quot;/g, '"');
   
   return processed;
 }
