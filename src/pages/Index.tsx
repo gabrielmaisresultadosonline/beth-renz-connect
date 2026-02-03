@@ -19,6 +19,7 @@ import { ptBR } from 'date-fns/locale';
 import heroBg from '@/assets/hero-bg.jpg';
 import quemSomosImage from '@/assets/quem-somos-home.jpg';
 import { HomepageSlider } from '@/components/HomepageSlider';
+import { RichContentRenderer } from '@/components/RichContentRenderer';
 
 interface PressRelease {
   id: string;
@@ -161,6 +162,37 @@ export default function Index() {
 
     fetchData();
   }, []);
+
+  const getTipPreviewText = (raw: string, maxLength = 200) => {
+    let cleaned = raw || '';
+
+    // Decode common HTML entities first (content may be stored as escaped HTML)
+    cleaned = cleaned
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'");
+
+    // Strip HTML tags + style/class noise that may appear as plain text
+    cleaned = cleaned
+      .replace(/<[^>]*>/g, '')
+      .replace(/style\s*=\s*['"][^'"]*['"]/gi, '')
+      .replace(/--tw-[^:;]+:\s*[^;]+;?/gi, '')
+      .replace(/(margin|padding|border|font|color|background)[^:]*:\s*[^;]+;?/gi, '');
+
+    // Strip editor markdown artifacts for previews
+    cleaned = cleaned
+      .replace(/!\[[^\]]*\]\([^)]*\)(\{width=\d+%\})?/g, '')
+      .replace(/\[video\]\([^)]*\)/g, '')
+      .replace(/#{1,6}\s/g, '')
+      .replace(/\*\*|\*/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength).trim()}...` : cleaned;
+  };
 
   // Filter releases based on search
   const filteredReleases = searchQuery.trim().length >= 2
@@ -392,24 +424,7 @@ export default function Index() {
                       </h3>
                       
                       <p className="text-muted-foreground text-sm mb-4 line-clamp-4">
-                        {sidebarTip.content
-                          .replace(/<[^>]+>/g, '')
-                          .replace(/style="[^"]*"/gi, '')
-                          .replace(/--tw-[^:;]+:[^;]+;?/gi, '')
-                          .replace(/margin[^:]*:[^;]+;?/gi, '')
-                          .replace(/padding[^:]*:[^;]+;?/gi, '')
-                          .replace(/border[^:]*:[^;]+;?/gi, '')
-                          .replace(/font[^:]*:[^;]+;?/gi, '')
-                          .replace(/color:[^;]+;?/gi, '')
-                          .replace(/background[^:]*:[^;]+;?/gi, '')
-                          .replace(/!\[.*?\]\(.*?\)(\{width=\d+%\})?/g, '')
-                          .replace(/\[video\]\(.*?\)/g, '')
-                          .replace(/#{1,6}\s/g, '')
-                          .replace(/\*\*/g, '').replace(/\*/g, '')
-                          .replace(/&nbsp;/g, ' ')
-                          .replace(/\s+/g, ' ')
-                          .trim()
-                          .substring(0, 200)}...
+                        {getTipPreviewText(sidebarTip.content, 200)}
                       </p>
                       
                       <Button size="sm" className="bg-primary hover:bg-primary/90">
@@ -640,10 +655,8 @@ export default function Index() {
                 <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-4">
                   {selectedTip.title}
                 </h2>
-                <div className="prose prose-lg max-w-none text-muted-foreground">
-                  {selectedTip.content.split('\n').map((paragraph, i) => (
-                    <p key={i}>{paragraph}</p>
-                  ))}
+                <div className="max-w-none">
+                  <RichContentRenderer content={selectedTip.content} />
                 </div>
               </div>
             </motion.article>
