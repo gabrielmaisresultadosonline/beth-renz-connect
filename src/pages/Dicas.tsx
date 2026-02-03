@@ -12,6 +12,7 @@ interface Tip {
   title: string;
   content: string;
   image_url: string | null;
+  slug: string | null;
 }
 
 export default function Dicas() {
@@ -92,7 +93,7 @@ export default function Dicas() {
               {tips.map((tip) => (
                 <Card key={tip.id} className="bg-card border-border hover:shadow-card transition-all overflow-hidden group">
                   {tip.image_url && (
-                    <Link to={`/dicas/${tip.id}`}>
+                    <Link to={`/dicas/${tip.slug || tip.id}`}>
                       <div className="aspect-video overflow-hidden">
                         <img 
                           src={tip.image_url} 
@@ -104,14 +105,14 @@ export default function Dicas() {
                   )}
                   <CardHeader>
                     <CardTitle className="font-display">
-                      <Link to={`/dicas/${tip.id}`} className="hover:text-primary transition-colors">
+                      <Link to={`/dicas/${tip.slug || tip.id}`} className="hover:text-primary transition-colors">
                         {tip.title}
                       </Link>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-muted-foreground line-clamp-3">{getPreview(tip.content)}</p>
-                    <Link to={`/dicas/${tip.id}`}>
+                    <Link to={`/dicas/${tip.slug || tip.id}`}>
                       <Button variant="outline" className="gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                         Ver mais
                         <ArrowRight className="h-4 w-4" />

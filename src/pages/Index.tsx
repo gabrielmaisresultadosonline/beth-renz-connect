@@ -47,6 +47,7 @@ interface Tip {
   content: string;
   image_url: string | null;
   created_at: string;
+  slug: string | null;
 }
 
 interface Partner {
@@ -398,7 +399,7 @@ export default function Index() {
                   
                   {sidebarTip ? (
                     <Link 
-                      to={`/dicas/${sidebarTip.id}`}
+                      to={`/dicas/${sidebarTip.slug || sidebarTip.id}`}
                       className="block bg-card border border-border border-t-0 p-4 group"
                     >
                       {sidebarTip.image_url && (
