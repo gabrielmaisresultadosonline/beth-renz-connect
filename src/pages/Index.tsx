@@ -94,7 +94,6 @@ export default function Index() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [content, setContent] = useState<Record<string, SiteContent>>({});
   const [selectedRelease, setSelectedRelease] = useState<PressRelease | null>(null);
-  const [selectedTip, setSelectedTip] = useState<Tip | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [pressReleasesLimit, setPressReleasesLimit] = useState(5);
   const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>({
@@ -398,9 +397,9 @@ export default function Index() {
                   </div>
                   
                   {sidebarTip ? (
-                    <article 
-                      className="bg-card border border-border border-t-0 p-4 cursor-pointer group"
-                      onClick={() => setSelectedTip(sidebarTip)}
+                    <Link 
+                      to={`/dicas/${sidebarTip.id}`}
+                      className="block bg-card border border-border border-t-0 p-4 group"
                     >
                       {sidebarTip.image_url && (
                         <div className="aspect-[16/10] rounded overflow-hidden mb-4">
@@ -430,7 +429,7 @@ export default function Index() {
                       <Button size="sm" className="bg-primary hover:bg-primary/90">
                         LEIA MAIS
                       </Button>
-                    </article>
+                    </Link>
                   ) : (
                     <div className="bg-card border border-border border-t-0 p-6 text-center">
                       <p className="text-muted-foreground text-sm">
@@ -614,55 +613,6 @@ export default function Index() {
       </section>
 
 
-      {/* Modal for Tip */}
-      <AnimatePresence>
-        {selectedTip && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedTip(null)}
-            className="fixed inset-0 bg-foreground/95 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
-          >
-            <motion.article
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-3xl bg-card rounded-2xl overflow-hidden my-8"
-            >
-              <button
-                onClick={() => setSelectedTip(null)}
-                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-              {selectedTip.image_url && (
-                <div className="aspect-video">
-                  <img
-                    src={selectedTip.image_url}
-                    alt={selectedTip.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-
-              <div className="p-8">
-                <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded mb-4">
-                  Dica de Comunicação
-                </span>
-                <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-4">
-                  {selectedTip.title}
-                </h2>
-                <div className="max-w-none">
-                  <RichContentRenderer content={selectedTip.content} />
-                </div>
-              </div>
-            </motion.article>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </Layout>
   );
 }
