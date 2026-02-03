@@ -15,10 +15,11 @@ interface Tip {
   content: string;
   image_url: string | null;
   created_at: string;
+  slug: string | null;
 }
 
 export default function DicaDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [tip, setTip] = useState<Tip | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,14 +27,28 @@ export default function DicaDetail() {
 
   useEffect(() => {
     const fetchTip = async () => {
-      if (!id) return;
+      if (!slug) return;
 
-      const { data, error } = await supabase
+      // Try to find by slug first, then by id (backwards compatibility)
+      let { data, error } = await supabase
         .from('tips')
         .select('*')
-        .eq('id', id)
+        .eq('slug', slug)
         .eq('published', true)
         .single();
+
+      // If not found by slug, try by id
+      if (error || !data) {
+        const idResult = await supabase
+          .from('tips')
+          .select('*')
+          .eq('id', slug)
+          .eq('published', true)
+          .single();
+        
+        data = idResult.data;
+        error = idResult.error;
+      }
 
       if (error || !data) {
         navigate('/dicas');
@@ -45,9 +60,9 @@ export default function DicaDetail() {
       // Fetch related tips
       const { data: related } = await supabase
         .from('tips')
-        .select('id, title, image_url, created_at')
+        .select('id, title, image_url, created_at, slug')
         .eq('published', true)
-        .neq('id', id)
+        .neq('id', data.id)
         .order('created_at', { ascending: false })
         .limit(3);
 
@@ -60,7 +75,7 @@ export default function DicaDetail() {
 
     fetchTip();
     window.scrollTo(0, 0);
-  }, [id, navigate]);
+  }, [slug, navigate]);
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
 
@@ -233,7 +248,7 @@ export default function DicaDetail() {
                 {relatedTips.map((related) => (
                   <Link
                     key={related.id}
-                    to={`/dicas/${related.id}`}
+                    to={`/dicas/${related.slug || related.id}`}
                     className="group block bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                   >
                     {related.image_url && (

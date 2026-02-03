@@ -20,6 +20,7 @@ interface Tip {
   image_url: string | null;
   published: boolean | null;
   created_at: string;
+  slug: string | null;
 }
 
 export default function AdminDicas() {
@@ -32,6 +33,7 @@ export default function AdminDicas() {
     content: '',
     image_url: '',
     published: false,
+    slug: '',
   });
   const { toast } = useToast();
 
@@ -50,6 +52,7 @@ export default function AdminDicas() {
       content: formData.content,
       image_url: formData.image_url || null,
       published: formData.published,
+      slug: formData.slug.trim() || null, // Trigger will generate if empty
     };
 
     let error;
@@ -81,8 +84,17 @@ export default function AdminDicas() {
   };
 
   const resetForm = () => {
-    setFormData({ title: '', content: '', image_url: '', published: false });
+    setFormData({ title: '', content: '', image_url: '', published: false, slug: '' });
     setEditingItem(null);
+  };
+
+  const generateSlugFromTitle = (title: string) => {
+    return title
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   };
 
   const openEdit = (item: Tip) => {
@@ -92,6 +104,7 @@ export default function AdminDicas() {
       content: item.content,
       image_url: item.image_url || '',
       published: item.published ?? false,
+      slug: item.slug || '',
     });
     setDialogOpen(true);
   };
@@ -115,10 +128,40 @@ export default function AdminDicas() {
                     <Label>Título *</Label>
                     <Input 
                       value={formData.title} 
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
+                      onChange={(e) => {
+                        const newTitle = e.target.value;
+                        const updates: any = { title: newTitle };
+                        // Auto-generate slug if slug is empty or matches previous auto-generated slug
+                        if (!formData.slug || formData.slug === generateSlugFromTitle(formData.title)) {
+                          updates.slug = generateSlugFromTitle(newTitle);
+                        }
+                        setFormData({ ...formData, ...updates });
+                      }} 
                       required 
                       placeholder="Título da dica"
                     />
+                  </div>
+                  <div>
+                    <Label>URL Amigável (slug)</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        value={formData.slug} 
+                        onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} 
+                        placeholder="url-amigavel-da-dica"
+                        className="font-mono text-sm"
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setFormData({ ...formData, slug: generateSlugFromTitle(formData.title) })}
+                      >
+                        Gerar
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Deixe vazio para gerar automaticamente a partir do título
+                    </p>
                   </div>
                   <div>
                     <Label>Conteúdo *</Label>
