@@ -392,7 +392,24 @@ export default function Index() {
                       </h3>
                       
                       <p className="text-muted-foreground text-sm mb-4 line-clamp-4">
-                        {sidebarTip.content.substring(0, 200)}...
+                        {sidebarTip.content
+                          .replace(/<[^>]+>/g, '')
+                          .replace(/style="[^"]*"/gi, '')
+                          .replace(/--tw-[^:;]+:[^;]+;?/gi, '')
+                          .replace(/margin[^:]*:[^;]+;?/gi, '')
+                          .replace(/padding[^:]*:[^;]+;?/gi, '')
+                          .replace(/border[^:]*:[^;]+;?/gi, '')
+                          .replace(/font[^:]*:[^;]+;?/gi, '')
+                          .replace(/color:[^;]+;?/gi, '')
+                          .replace(/background[^:]*:[^;]+;?/gi, '')
+                          .replace(/!\[.*?\]\(.*?\)(\{width=\d+%\})?/g, '')
+                          .replace(/\[video\]\(.*?\)/g, '')
+                          .replace(/#{1,6}\s/g, '')
+                          .replace(/\*\*/g, '').replace(/\*/g, '')
+                          .replace(/&nbsp;/g, ' ')
+                          .replace(/\s+/g, ' ')
+                          .trim()
+                          .substring(0, 200)}...
                       </p>
                       
                       <Button size="sm" className="bg-primary hover:bg-primary/90">
