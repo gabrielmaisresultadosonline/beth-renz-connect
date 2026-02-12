@@ -661,6 +661,7 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
   };
 
   const openLinkDialog = () => {
+    saveSelection();
     const selection = window.getSelection();
     if (selection && selection.toString()) {
       setLinkText(selection.toString());
@@ -676,6 +677,8 @@ export function WysiwygEditor({ value, onChange, placeholder = "Escreva seu cont
       toast({ title: 'URL obrigatória', description: 'Digite a URL do link', variant: 'destructive' });
       return;
     }
+    
+    restoreSelection();
     
     if (linkText) {
       execCommand('insertHTML', `<a href="${linkUrl}" target="_blank">${linkText}</a>`);
