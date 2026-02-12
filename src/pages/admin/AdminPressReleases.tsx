@@ -218,13 +218,16 @@ export default function AdminPressReleases() {
     
     if (targetIndex < 0 || targetIndex >= items.length) return;
     
-    const targetItem = items[targetIndex];
+    // Reassign sequential display_order to all items first, then swap
+    const newItems = [...items];
+    const temp = newItems[currentIndex];
+    newItems[currentIndex] = newItems[targetIndex];
+    newItems[targetIndex] = temp;
     
-    // Swap display_order values
-    const updates = [
-      supabase.from('press_releases').update({ display_order: targetItem.display_order }).eq('id', item.id),
-      supabase.from('press_releases').update({ display_order: item.display_order }).eq('id', targetItem.id),
-    ];
+    // Update all items with new sequential order
+    const updates = newItems.map((it, idx) =>
+      supabase.from('press_releases').update({ display_order: idx }).eq('id', it.id)
+    );
     
     await Promise.all(updates);
     fetchItems();
