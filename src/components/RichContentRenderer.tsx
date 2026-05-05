@@ -203,22 +203,20 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
         continue;
       }
 
-      // Check if line contains an image mixed with text - separate them
-      // Updated regex to support optional {width=X%}
+      // Check if line contains an image mixed with text or multiple images
       const inlineImageRegex = /!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)%\})?/g;
-      const hasInlineImage = inlineImageRegex.test(trimmedLine);
       
-      if (hasInlineImage) {
-        // Reset regex
-        inlineImageRegex.lastIndex = 0;
+      // We check if there's any image in the line
+      const lineMatches = [...trimmedLine.matchAll(inlineImageRegex)];
+      
+      if (lineMatches.length > 0) {
+        // If it's ONLY an image on the line (handled above), we still check if there's text around it
+        // Or if there are multiple images, or text + images
         
-        // Split the line by images and render each part separately
         let lastIndex = 0;
-        let match;
-        
-        while ((match = inlineImageRegex.exec(trimmedLine)) !== null) {
-          // Text before the image
-          const textBefore = trimmedLine.slice(lastIndex, match.index).trim();
+        lineMatches.forEach((match) => {
+          // Text before this image
+          const textBefore = trimmedLine.slice(lastIndex, match.index!).trim();
           if (textBefore) {
             elements.push(
               <p key={key++} className="text-base md:text-lg leading-relaxed text-muted-foreground mb-3">
@@ -227,7 +225,7 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
             );
           }
           
-          // The image itself - as a block element
+          // The image itself
           const altText = match[1];
           const imageUrl = match[2];
           const widthPercent = match[3];
@@ -254,8 +252,8 @@ export function RichContentRenderer({ content, className = '' }: RichContentRend
             </figure>
           );
           
-          lastIndex = match.index + match[0].length;
-        }
+          lastIndex = match.index! + match[0].length;
+        });
         
         // Text after the last image
         const textAfter = trimmedLine.slice(lastIndex).trim();
