@@ -34,8 +34,6 @@ export default function PressReleases() {
         .from('press_releases')
         .select('*')
         .eq('published', true)
-        .order('pinned', { ascending: false })
-        .order('display_order', { ascending: true })
         .order('published_at', { ascending: false });
       
       setReleases(data || []);

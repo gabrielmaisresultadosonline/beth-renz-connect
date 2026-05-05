@@ -116,7 +116,7 @@ export default function Index() {
         sectionsData,
         settingsData
       ] = await Promise.all([
-        supabase.from('press_releases').select('*').eq('published', true).order('pinned', { ascending: false }).order('display_order', { ascending: true }).order('published_at', { ascending: false }).limit(20),
+        supabase.from('press_releases').select('*').eq('published', true).order('published_at', { ascending: false }).limit(20),
         supabase.from('clients').select('*').eq('active', true).order('display_order', { ascending: true }).limit(12),
         supabase.from('tips').select('*').eq('published', true).order('created_at', { ascending: false }).limit(4),
         supabase.from('partners').select('*').eq('active', true).order('display_order', { ascending: true }),
